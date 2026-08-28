@@ -53,7 +53,7 @@
 }
 
 .glass {
-  background: rgb(16 22 48 / 0.62);
+  background: rgb(14 19 42 / 0.82);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
   border: 1px solid rgb(255 255 255 / 0.1);
@@ -61,7 +61,7 @@
 }
 
 .glass-soft {
-  background: rgb(18 24 52 / 0.45);
+  background: rgb(16 21 46 / 0.66);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgb(255 255 255 / 0.08);
@@ -247,6 +247,19 @@ input[type="date"].glass-field::-webkit-calendar-picker-indicator {
   animation: sun-pulse-glow 3.6s ease-in-out infinite;
 }
 
+@keyframes star-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+.star-twinkle {
+  animation: star-twinkle 3s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sheet-in,
   .animate-float,
@@ -256,7 +269,8 @@ input[type="date"].glass-field::-webkit-calendar-picker-indicator {
   .pill-in,
   .tab-flash,
   .gear-spin,
-  .sun-pulse {
+  .sun-pulse,
+  .star-twinkle {
     animation: none;
   }
 }
