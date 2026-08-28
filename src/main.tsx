@@ -1,0 +1,17 @@
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { AppShell } from "./components/app-shell";
+import "./styles.css";
+
+const root = document.getElementById("root");
+if (!root) {
+  throw new Error("Elemento #root non trovato in index.html");
+}
+
+createRoot(root).render(
+  <StrictMode>
+    <div className="cosmic-bg min-h-dvh">
+      <AppShell />
+    </div>
+  </StrictMode>,
+);
