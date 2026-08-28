@@ -1,0 +1,48 @@
+import type { Subscription } from "./types";
+
+const s = (
+  id: string,
+  name: string,
+  category: Subscription["category"],
+  price: number,
+  frequency: Subscription["frequency"],
+  nextRenewal: string,
+  startedAt: string,
+  status: Subscription["status"],
+  brandKey: string,
+  notes = "",
+): Subscription => ({
+  id,
+  name,
+  category,
+  price,
+  frequency,
+  nextRenewal,
+  startedAt,
+  status,
+  brandKey,
+  notes,
+});
+
+export const SEED: Subscription[] = [
+  s("sub-netflix", "Netflix", "streaming", 15.99, "monthly", "2026-09-02", "2025-09-02", "active", "netflix", "Piano Standard"),
+  s("sub-disney", "Disney+", "streaming", 8.99, "monthly", "2026-09-05", "2025-09-05", "active", "disney"),
+  s("sub-spotify", "Spotify", "musica", 10.99, "monthly", "2026-09-01", "2025-09-01", "active", "spotify", "Individual"),
+  s("sub-youtube", "YouTube Premium", "streaming", 12.99, "monthly", "2026-08-28", "2025-08-28", "active", "youtube"),
+  s("sub-prime", "Amazon Prime", "ecommerce", 4.99, "monthly", "2026-09-12", "2025-09-12", "active", "prime"),
+  s("sub-icloud", "iCloud+", "cloud", 0.99, "monthly", "2026-09-08", "2025-09-08", "active", "icloud", "50 GB"),
+  s("sub-adobe", "Adobe", "creativita", 9.99, "monthly", "2026-09-20", "2025-09-20", "active", "adobe", "Photography"),
+  s("sub-openai", "ChatGPT Plus", "ia", 20, "monthly", "2026-09-15", "2025-09-15", "active", "openai"),
+  s("sub-nintendo", "Nintendo Online", "gaming", 0.99, "monthly", "2026-09-03", "2025-09-03", "active", "nintendo"),
+  s("sub-domain", "Dominio .it", "web", 12.9, "once", "2026-10-01", "2026-10-01", "active", "domain"),
+  s("sub-ps", "PlayStation Plus", "gaming", 13.99, "monthly", "2026-09-18", "2025-09-18", "paused", "playstation"),
+  s("sub-dazn", "DAZN", "sport", 29.99, "monthly", "2026-09-10", "2025-09-10", "cancelled", "dazn"),
+  s("sub-telepass", "Telepass", "mobilita", 6.75, "monthly", "2026-09-06", "2025-09-06", "active", "telepass", "Device + Plus"),
+  s("sub-unipol", "UnipolMove", "mobilita", 1.5, "monthly", "2026-09-14", "2025-09-14", "active", "unipol"),
+  s("sub-vodafone", "Vodafone", "telefono", 9.99, "monthly", "2026-09-04", "2025-09-04", "active", "vodafone", "Giga 150"),
+  s("sub-fastweb", "Fastweb", "telefono", 29.95, "monthly", "2026-09-11", "2025-09-11", "active", "fastweb", "Fibra casa"),
+  s("sub-dimensione", "Dimensione", "telefono", 6.99, "monthly", "2026-09-22", "2025-09-22", "active", "dimensione"),
+  s("sub-fineco", "Fineco", "banca", 3.95, "monthly", "2026-09-01", "2025-09-01", "active", "fineco", "Canone conto"),
+  s("sub-bbva", "BBVA", "banca", 4.9, "monthly", "2026-09-16", "2025-09-16", "active", "bbva"),
+  s("sub-intesa", "Intesa Sanpaolo", "banca", 4.5, "monthly", "2026-09-09", "2025-09-09", "active", "intesa", "XME Conto"),
+];
