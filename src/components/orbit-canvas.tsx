@@ -600,20 +600,22 @@ export function OrbitCanvas({
         }
 
         if (sim.focusId === b.id) {
+          const beat = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(now * 0.0042));
+          const rad = b.pr * (1.55 + beat * 0.7);
           const halo = ctx.createRadialGradient(
             b.px,
             b.py,
-            b.pr * 0.85,
+            b.pr * 0.7,
             b.px,
             b.py,
-            b.pr * 1.85,
+            rad,
           );
           halo.addColorStop(0, `${b.color}00`);
-          halo.addColorStop(0.55, `${b.color}40`);
+          halo.addColorStop(0.45, `${b.color}${Math.round(50 + beat * 40).toString(16).padStart(2, "0")}`);
           halo.addColorStop(1, `${b.color}00`);
           ctx.fillStyle = halo;
           ctx.beginPath();
-          ctx.arc(b.px, b.py, b.pr * 1.85, 0, Math.PI * 2);
+          ctx.arc(b.px, b.py, rad, 0, Math.PI * 2);
           ctx.fill();
         }
 

@@ -183,14 +183,13 @@ export function AppShell() {
                   <OrbitIconStrip
                     subscriptions={subscriptions}
                     filter={filter}
-                    selectedId={detailId}
+                    selectedId={focusId}
                     onPick={(id) => {
-                      if (detailId === id) {
-                        setDetailId(null);
+                      if (focusId === id) {
                         setFocusId(null);
                         return;
                       }
-                      setDetailId(id);
+                      setDetailId(null);
                       setFocusId(id);
                     }}
                   />
@@ -307,8 +306,10 @@ function OrbitIconStrip({
             onClick={() => onPick(s.id)}
             aria-label={s.name}
             className={cn(
-              "size-8 shrink-0 overflow-hidden rounded-full glow-tap",
-              on ? "ring-2 ring-cyan ring-offset-1 ring-offset-void" : "opacity-85",
+              "size-8 shrink-0 rounded-full",
+              on
+                ? "icon-pulse ring-2 ring-cyan ring-offset-1 ring-offset-void"
+                : "glow-tap overflow-hidden opacity-85",
             )}
           >
             <BrandBadge brandKey={s.brandKey} name={s.name} size={32} />
