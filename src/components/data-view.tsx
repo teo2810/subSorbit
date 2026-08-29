@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScreenHeader } from "./orbit-mark";
 import { ChartBackdrop } from "./chart-backdrop";
 import { BrandBadge } from "@/lib/logos";
@@ -151,116 +151,112 @@ function CategoryRing({
   onSelect: (id: string | null) => void;
   active: boolean;
 }) {
-  const size = 236;
-  const stroke = 14;
-  const r = (size - stroke) / 2 - 4;
-  const c = 2 * Math.PI * r;
-  const track = c * 0.75;
+  const size = 280;
+  const stroke = 16;
+  const r = 102;
   const cx = size / 2;
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [grow, setGrow] = useState(0);
+
   useEffect(() => {
     if (!active) {
       setGrow(0);
       return;
     }
     setGrow(0);
-    const t = window.setTimeout(() => setGrow(1), 80);
+    const t = window.setTimeout(() => setGrow(1), 40);
     return () => window.clearTimeout(t);
   }, [active, slices]);
 
-  const span = 270;
-  const stops: string[] = [];
-  let deg = 0;
-  for (const s of slices) {
-    const slice = (s.value / total) * span;
-    const color = selected && selected !== s.id ? `${s.color}44` : s.color;
-    stops.push(`${color} ${deg}deg`);
-    deg += slice;
-    stops.push(`${color} ${deg}deg`);
-  }
-  stops.push(`transparent ${span}deg`, `transparent 360deg`);
-  const conic = `conic-gradient(from 225deg, ${stops.join(", ")})`;
-  const ringMask =
-    "radial-gradient(farthest-side, transparent calc(100% - 15px), #000 calc(100% - 14px), #000 calc(100% - 1px), transparent)";
-  let offset = 0;
-  const first = slices[0];
-  const last = slices[slices.length - 1];
-  const cap = (cssDeg: number, color: string) => {
-    const rad = (cssDeg * Math.PI) / 180;
-    return {
-      left: `${50 + Math.sin(rad) * ((r / size) * 100)}%`,
-      top: `${50 - Math.cos(rad) * ((r / size) * 100)}%`,
-      background: color,
-      boxShadow: `0 0 10px ${color}`,
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+
+    const start = (135 * Math.PI) / 180;
+    const sweep = (270 * Math.PI) / 180 * Math.max(0.001, grow);
+    const grad = ctx.createConicGradient(start, cx, cx);
+    let t = 0;
+    slices.forEach((s, i) => {
+      const share = (s.value / total) * 0.75;
+      const col = selected && selected !== s.id ? fade(s.color, 0.28) : s.color;
+      if (i === 0) grad.addColorStop(0, col);
+      t += share;
+      grad.addColorStop(Math.min(0.749, t), col);
+    });
+    grad.addColorStop(0.75, slices.length ? (selected && selected !== slices[slices.length - 1]!.id ? fade(slices[slices.length - 1]!.color, 0.28) : slices[slices.length - 1]!.color) : "#22d3ee");
+    grad.addColorStop(0.751, "rgba(0,0,0,0)");
+    grad.addColorStop(1, "rgba(0,0,0,0)");
+
+    const strokeArc = (width: number, alpha: number) => {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = width;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = grad;
+      ctx.beginPath();
+      ctx.arc(cx, cx, r, start, start + sweep);
+      ctx.stroke();
+      ctx.restore();
     };
+
+    strokeArc(56, 0.12);
+    strokeArc(36, 0.2);
+    strokeArc(24, 0.35);
+    strokeArc(stroke, 1);
+  }, [slices, selected, grow, total]);
+
+  const hit = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    const dist = Math.hypot(x, y);
+    const scale = rect.width / size;
+    const rr = r * scale;
+    if (Math.abs(dist - rr) > 22 * scale) return;
+    let ang = Math.atan2(y, x);
+    if (ang < 0) ang += Math.PI * 2;
+    const start = (135 * Math.PI) / 180;
+    let rel = ang - start;
+    if (rel < 0) rel += Math.PI * 2;
+    if (rel > (270 * Math.PI) / 180) return;
+    const p = rel / ((270 * Math.PI) / 180);
+    let acc = 0;
+    for (const s of slices) {
+      acc += s.value / total;
+      if (p <= acc) {
+        onSelect(selected === s.id ? null : s.id);
+        return;
+      }
+    }
   };
 
   return (
-    <div className="relative h-[236px] w-[236px]" style={{ opacity: 0.2 + 0.8 * grow }}>
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: conic,
-          WebkitMask: ringMask,
-          mask: ringMask,
-          filter: "blur(14px)",
-          opacity: 0.75,
-        }}
-      />
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: conic,
-          WebkitMask: ringMask,
-          mask: ringMask,
-        }}
-      />
-      {first ? (
-        <span
-          className="pointer-events-none absolute size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={cap(225, selected && selected !== first.id ? `${first.color}44` : first.color)}
-        />
-      ) : null}
-      {last ? (
-        <span
-          className="pointer-events-none absolute size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={cap(135, selected && selected !== last.id ? `${last.color}44` : last.color)}
-        />
-      ) : null}
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        className="absolute inset-0"
-        aria-hidden
-      >
-        <g transform={`rotate(135 ${cx} ${cx})`}>
-          {slices.map((s) => {
-            const raw = (s.value / total) * track;
-            const len = Math.max(0.01, raw);
-            const dashOff = -offset;
-            offset += raw;
-            return (
-              <circle
-                key={s.id}
-                cx={cx}
-                cy={cx}
-                r={r}
-                fill="none"
-                stroke="transparent"
-                strokeWidth={stroke + 10}
-                strokeDasharray={`${len} ${c}`}
-                strokeDashoffset={dashOff}
-                style={{ cursor: "pointer" }}
-                onClick={() => onSelect(selected === s.id ? null : s.id)}
-              />
-            );
-          })}
-        </g>
-      </svg>
-    </div>
+    <canvas
+      ref={canvasRef}
+      width={size}
+      height={size}
+      onClick={hit}
+      className="h-[280px] w-[280px] cursor-pointer"
+      style={{ margin: "-22px" }}
+    />
   );
+}
+
+function fade(hex: string, a: number) {
+  const n = hex.replace("#", "");
+  if (n.length !== 6) return hex;
+  const r = parseInt(n.slice(0, 2), 16);
+  const g = parseInt(n.slice(2, 4), 16);
+  const b = parseInt(n.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
 }
 
 function Chip({
