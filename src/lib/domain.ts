@@ -290,6 +290,7 @@ export function nextOccurrence(
   from: Date = new Date(),
 ): Date {
   let d = parseISO(dateStr);
+  if (Number.isNaN(d.getTime())) d = startOfDay(from);
   if (freq === "once") return d;
   const origin = startOfDay(from);
   let guard = 0;
@@ -339,12 +340,14 @@ export function occurrencesInRange(
   const out: Date[] = [];
   const startDay = startOfDay(start);
   const endDay = startOfDay(end);
+  const raw = parseISO(sub.nextRenewal);
+  if (Number.isNaN(raw.getTime())) return out;
   if (sub.frequency === "once") {
-    const d = startOfDay(parseISO(sub.nextRenewal));
+    const d = startOfDay(raw);
     if (d >= startDay && d <= endDay) out.push(d);
     return out;
   }
-  let d = startOfDay(parseISO(sub.nextRenewal));
+  let d = startOfDay(raw);
   let guard = 0;
   while (d > startDay && guard < 240) {
     const prev = stepBack(d, sub.frequency);
@@ -376,6 +379,61 @@ export function statusColorVar(status: Status): string {
   if (status === "active") return "var(--color-ok)";
   if (status === "paused") return "var(--color-warn)";
   return "var(--color-bad)";
+}
+
+const FREQS: Frequency[] = ["weekly", "monthly", "yearly", "once"];
+const STATS: Status[] = ["active", "paused", "cancelled"];
+
+export function normalizeSubscription(raw: unknown, i = 0): Subscription | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const price = Number(r.price);
+  if (!Number.isFinite(price)) return null;
+  const dateRaw = String(r.nextRenewal ?? r.startedAt ?? "");
+  const parsed = Date.parse(dateRaw);
+  const next =
+    Number.isFinite(parsed) ? isoDate(new Date(parsed)) : isoDate(new Date());
+  const freq = FREQS.includes(r.frequency as Frequency)
+    ? (r.frequency as Frequency)
+    : "monthly";
+  const status = STATS.includes(r.status as Status) ? (r.status as Status) : "active";
+  const cat = String(r.category || "altro") as CategoryId;
+  return {
+    id: String(r.id || `imp-${Date.now()}-${i}`),
+    name: String(r.name || "Abbonamento").slice(0, 80),
+    category: CATEGORIES.some((c) => c.id === cat) || cat === "produttivita" ? cat : "altro",
+    price,
+    frequency: freq,
+    nextRenewal: next,
+    startedAt: typeof r.startedAt === "string" ? r.startedAt : next,
+    status,
+    brandKey: String(r.brandKey || r.name || "custom"),
+    notes: String(r.notes ?? ""),
+  };
+}
+
+export function parseBackupPayload(data: unknown): {
+  subscriptions: Subscription[];
+  displayName?: string;
+  email?: string;
+} {
+  const root = data as Record<string, unknown> | unknown[];
+  const list = Array.isArray(root)
+    ? root
+    : Array.isArray((root as Record<string, unknown>)?.subscriptions)
+      ? ((root as Record<string, unknown>).subscriptions as unknown[])
+      : null;
+  if (!list) throw new Error("formato");
+  const subscriptions = list
+    .map((item, i) => normalizeSubscription(item, i))
+    .filter((s): s is Subscription => Boolean(s));
+  if (!subscriptions.length) throw new Error("vuoto");
+  const obj = Array.isArray(root) ? {} : (root as Record<string, unknown>);
+  return {
+    subscriptions,
+    displayName: typeof obj.displayName === "string" ? obj.displayName : undefined,
+    email: typeof obj.email === "string" ? obj.email : undefined,
+  };
 }
 
 export function emptySubscription(): Omit<Subscription, "id"> {

@@ -57,7 +57,12 @@ export const useAppStore = create<AppState>()(
       setDisplayName: (v) => set({ displayName: v }),
       setEmail: (v) => set({ email: v }),
       setOrbitSpeed: (v) => set({ orbitSpeed: v }),
-      replaceAll: (subs) => set({ subscriptions: subs }),
+      replaceAll: (subs) =>
+        set({
+          subscriptions: subs.filter(
+            (s) => s && typeof s.id === "string" && typeof s.name === "string",
+          ),
+        }),
       clearSubscriptions: () => set({ subscriptions: [] }),
       resetDemo: () =>
         set({

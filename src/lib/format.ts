@@ -18,12 +18,14 @@ export function formatEuroCompact(n: number): string {
 }
 
 export function formatDay(d: Date): string {
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return "—";
   if (isToday(d)) return "Oggi";
   if (isTomorrow(d)) return "Domani";
   return format(d, "d MMM", { locale: it });
 }
 
 export function formatDayLong(d: Date): string {
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return "—";
   return format(d, "d MMMM yyyy", { locale: it });
 }
 
