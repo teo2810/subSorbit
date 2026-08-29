@@ -20,12 +20,12 @@ export function ChartBackdrop() {
   );
 
   return (
-    <div className="pointer-events-none absolute -inset-8 overflow-visible">
+    <div className="pointer-events-none absolute inset-0 overflow-visible">
       <div
-        className="absolute inset-0 rounded-full"
+        className="absolute left-1/2 top-1/2 h-[140%] w-[140%] -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           background:
-            "radial-gradient(circle at 50% 46%, rgba(34,211,238,0.38) 0%, rgba(56,189,248,0.16) 38%, rgba(99,102,241,0.08) 62%, transparent 78%)",
+            "radial-gradient(circle at 50% 46%, rgba(34,211,238,0.28) 0%, rgba(56,189,248,0.12) 40%, transparent 70%)",
         }}
       />
       {stars.map((s) => (

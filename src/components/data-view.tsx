@@ -55,8 +55,9 @@ export function DataView({
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-36">
         <ScreenHeader onSettings={onSettings} sticky />
         <div className="px-5">
-        <div className="relative mx-auto mt-1 h-[236px] w-[236px]">
+        <div className="relative mx-auto mt-2 flex h-[320px] w-full max-w-[320px] items-center justify-center">
           <ChartBackdrop />
+          <div className="relative h-[236px] w-[236px]">
           <CategoryRing
             slices={slices}
             selected={sel}
@@ -74,6 +75,7 @@ export function DataView({
                   ? "Spesa di questo mese"
                   : "Spesa di quest’anno"}
             </p>
+          </div>
           </div>
         </div>
 
@@ -170,7 +172,7 @@ function CategoryRing({
   const gap = 7;
   let offset = 0;
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} overflow="visible" aria-hidden>
       <g transform={`rotate(135 ${cx} ${cx})`}>
         <circle
           cx={cx}
@@ -189,28 +191,40 @@ function CategoryRing({
           offset += raw;
           const dim = Boolean(selected && selected !== s.id);
           return (
-            <circle
-              key={s.id}
-              cx={cx}
-              cy={cx}
-              r={r}
-              fill="none"
-              stroke={s.color}
-              strokeWidth={dim ? 8 : stroke + 2}
-              strokeLinecap="round"
-              strokeDasharray={`${len} ${c}`}
-              strokeDashoffset={dashOff}
-              opacity={dim ? 0.22 : 1}
-              style={{
-                cursor: "pointer",
-                filter: dim
-                  ? "none"
-                  : `drop-shadow(0 0 6px ${s.color}) drop-shadow(0 0 14px ${s.color}cc)`,
-                transition:
-                  "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms, stroke-width 200ms",
-              }}
-              onClick={() => onSelect(selected === s.id ? null : s.id)}
-            />
+            <g key={s.id}>
+              {!dim && (
+                <circle
+                  cx={cx}
+                  cy={cx}
+                  r={r}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={stroke + 20}
+                  strokeLinecap="round"
+                  strokeDasharray={`${len} ${c}`}
+                  strokeDashoffset={dashOff}
+                  opacity={0.28}
+                />
+              )}
+              <circle
+                cx={cx}
+                cy={cx}
+                r={r}
+                fill="none"
+                stroke={s.color}
+                strokeWidth={dim ? 8 : stroke + 2}
+                strokeLinecap="round"
+                strokeDasharray={`${len} ${c}`}
+                strokeDashoffset={dashOff}
+                opacity={dim ? 0.22 : 1}
+                style={{
+                  cursor: "pointer",
+                  transition:
+                    "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms, stroke-width 200ms",
+                }}
+                onClick={() => onSelect(selected === s.id ? null : s.id)}
+              />
+            </g>
           );
         })}
       </g>

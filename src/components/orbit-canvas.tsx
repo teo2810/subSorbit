@@ -251,6 +251,7 @@ export function OrbitCanvas({
       sim.followId = null;
       sim.focusId = null;
       sim.targetZoom = 1;
+      sim.targetTilt = 0.68;
       sim.targetCyFactor = 0.42;
       return;
     }
@@ -261,8 +262,9 @@ export function OrbitCanvas({
     }
     sim.focusId = id;
     sim.followId = id;
-    sim.targetZoom = pinnedId ? 1.32 : 1.42;
-    sim.targetCyFactor = pinnedId ? 0.24 : 0.4;
+    sim.targetZoom = pinnedId ? 1.38 : 1.5;
+    sim.targetTilt = pinnedId ? 0.5 : 0.55;
+    sim.targetCyFactor = pinnedId ? 0.28 : 0.38;
   }, [focusId, pinnedId]);
 
   useEffect(() => {
@@ -409,11 +411,17 @@ export function OrbitCanvas({
 
       if (sim.followId && !sim.dragging) {
         const tracked = sim.bodies.find((b) => b.id === sim.followId);
-        if (tracked) sim.targetRot = -(tracked.angle + tracked.node) + Math.PI * 0.5;
+        if (tracked) {
+          const wpos = worldOf(tracked.radius, tracked.angle, tracked.inc, tracked.node);
+          sim.targetRot = Math.atan2(wpos.x, wpos.z) + Math.PI;
+        }
       }
 
       const ease = 1 - Math.exp(-dt * 5.2);
-      sim.rot += (sim.targetRot - sim.rot) * ease;
+      let dRot = sim.targetRot - sim.rot;
+      while (dRot > Math.PI) dRot -= Math.PI * 2;
+      while (dRot < -Math.PI) dRot += Math.PI * 2;
+      sim.rot += dRot * ease;
       sim.tilt += (sim.targetTilt - sim.tilt) * ease;
       sim.zoom += (sim.targetZoom - sim.zoom) * ease;
       sim.cyFactor += (sim.targetCyFactor - sim.cyFactor) * ease;

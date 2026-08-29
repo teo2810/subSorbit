@@ -70,8 +70,9 @@ export function HomeView({
         <ScreenHeader onSettings={onSettings} sticky />
 
         <div className="px-5">
-        <div className="relative mx-auto mt-1 h-[236px] w-[236px]">
+        <div className="relative mx-auto mt-2 flex h-[320px] w-full max-w-[320px] items-center justify-center">
           <ChartBackdrop />
+          <div className="relative h-[236px] w-[236px]">
           <SpendRing percent={spend.percent} active={active} />
           <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
             <p className="font-display text-[32px] font-semibold tabular-nums leading-none tracking-tight">
@@ -85,6 +86,7 @@ export function HomeView({
             <p className="mt-1.5 text-[11px] text-cyan">
               Pagato {pct}% · resta {formatEuroCompact(spend.remaining)}
             </p>
+          </div>
           </div>
         </div>
 
@@ -160,7 +162,7 @@ function SpendRing({ percent, active }: { percent: number; active: boolean }) {
   const fill = track * Math.min(1, Math.max(0, shown));
   const cx = size / 2;
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} overflow="visible" aria-hidden>
       <g transform={`rotate(135 ${cx} ${cx})`}>
         <circle
           cx={cx}
@@ -177,13 +179,31 @@ function SpendRing({ percent, active }: { percent: number; active: boolean }) {
           cy={cx}
           r={r}
           fill="none"
+          stroke="rgba(34,211,238,0.28)"
+          strokeWidth={stroke + 22}
+          strokeLinecap="round"
+          strokeDasharray={`${fill} ${c}`}
+        />
+        <circle
+          cx={cx}
+          cy={cx}
+          r={r}
+          fill="none"
+          stroke="rgba(165,243,252,0.5)"
+          strokeWidth={stroke + 8}
+          strokeLinecap="round"
+          strokeDasharray={`${fill} ${c}`}
+        />
+        <circle
+          cx={cx}
+          cy={cx}
+          r={r}
+          fill="none"
           stroke="var(--color-cyan)"
           strokeWidth={stroke + 2}
           strokeLinecap="round"
           strokeDasharray={`${fill} ${c}`}
           style={{
-            filter:
-              "drop-shadow(0 0 6px rgba(34,211,238,0.95)) drop-shadow(0 0 16px rgba(34,211,238,0.55))",
             transition: "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1)",
           }}
         />
