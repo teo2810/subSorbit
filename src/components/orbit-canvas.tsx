@@ -310,7 +310,7 @@ export function OrbitCanvas({
       let bestD = Infinity;
       for (const b of sim.bodies) {
         const d = Math.hypot(b.px - x, b.py - y);
-        if (d < Math.max(18, b.pr + 10) && d < bestD) {
+        if (d < Math.max(18, b.pr + 10) && (b.pz < (best?.pz ?? 999) || d < bestD - 6)) {
           best = b;
           bestD = d;
         }
@@ -508,9 +508,10 @@ export function OrbitCanvas({
         b.pr = b.size * p.p * zoom;
       }
 
+      const sunP = project(0, 0, 0, rot, tilt, zoom, cx, cy);
+      const sunR = 38 * zoom * sunP.p;
+
       const drawSun = () => {
-        const sunP = project(0, 0, 0, rot, tilt, zoom, cx, cy);
-        const sunR = 38 * zoom * sunP.p;
         const pulse = 0.94 + Math.sin(now * 0.0016) * 0.06;
 
         const bloom = ctx.createRadialGradient(
@@ -572,9 +573,11 @@ export function OrbitCanvas({
       };
 
       const drawBody = (b: Body) => {
-        const isFar = b.pz < 0;
+        const isFar = b.pz > 0;
+        const distSun = Math.hypot(b.px - sunP.x, b.py - sunP.y);
+        if (isFar && distSun < sunR * 0.92) return;
         ctx.save();
-        if (isFar) ctx.globalAlpha = 0.92;
+        if (isFar) ctx.globalAlpha = distSun < sunR * 1.7 ? 0.35 : 0.88;
 
         if (b.paused) {
           for (let i = 0; i < 4; i++) {
@@ -629,9 +632,9 @@ export function OrbitCanvas({
         }
       };
 
-      const sorted = [...sim.bodies].sort((a, b) => a.pz - b.pz);
-      const far = sorted.filter((b) => b.pz < 0);
-      const near = sorted.filter((b) => b.pz >= 0);
+      const sorted = [...sim.bodies].sort((a, b) => b.pz - a.pz);
+      const far = sorted.filter((b) => b.pz > 0);
+      const near = sorted.filter((b) => b.pz <= 0);
       for (const b of far) drawBody(b);
       drawSun();
       for (const b of near) drawBody(b);
