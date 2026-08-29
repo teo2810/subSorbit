@@ -177,7 +177,7 @@ function CategoryRing({
           cy={cx}
           r={r}
           fill="none"
-          stroke="rgba(255,255,255,0.08)"
+          stroke="rgba(165,243,252,0.18)"
           strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${track} ${c}`}
@@ -196,14 +196,16 @@ function CategoryRing({
               r={r}
               fill="none"
               stroke={s.color}
-              strokeWidth={dim ? 8 : stroke}
+              strokeWidth={dim ? 8 : stroke + 2}
               strokeLinecap="round"
               strokeDasharray={`${len} ${c}`}
               strokeDashoffset={dashOff}
               opacity={dim ? 0.22 : 1}
               style={{
                 cursor: "pointer",
-                filter: dim ? "none" : `drop-shadow(0 0 5px ${s.color}99)`,
+                filter: dim
+                  ? "none"
+                  : `drop-shadow(0 0 6px ${s.color}) drop-shadow(0 0 14px ${s.color}cc)`,
                 transition:
                   "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms, stroke-width 200ms",
               }}

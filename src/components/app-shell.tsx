@@ -16,9 +16,9 @@ import { WelcomeView } from "./welcome-view";
 import { cn } from "@/lib/cn";
 import { activeMonthlyTotal } from "@/lib/domain";
 import { formatEuroCompact } from "@/lib/format";
-import { preloadBrandIcons } from "@/lib/logos";
+import { BrandBadge, preloadBrandIcons } from "@/lib/logos";
 import { useAppStore, type OrbitSpeed } from "@/lib/store";
-import type { StatusFilter, TabId } from "@/lib/types";
+import type { StatusFilter, Subscription, TabId } from "@/lib/types";
 
 const TAB_ORDER: TabId[] = ["home", "orbit", "calendar", "data"];
 
@@ -178,7 +178,23 @@ export function AppShell() {
                 </div>
               </div>
             </header>
-            <div className="pointer-events-none absolute inset-x-0 bottom-28 z-20 flex items-end justify-center px-4">
+            <div className="pointer-events-none absolute inset-x-0 bottom-28 z-20 flex flex-col items-center px-4">
+                <div className="pointer-events-auto mb-2 w-full max-w-[720px]">
+                  <OrbitIconStrip
+                    subscriptions={subscriptions}
+                    filter={filter}
+                    selectedId={detailId}
+                    onPick={(id) => {
+                      if (detailId === id) {
+                        setDetailId(null);
+                        setFocusId(null);
+                        return;
+                      }
+                      setDetailId(id);
+                      setFocusId(id);
+                    }}
+                  />
+                </div>
                 <div className="flex w-full max-w-[720px] items-end justify-between">
                   <button
                     type="button"
@@ -263,6 +279,42 @@ export function AppShell() {
         position="top-center"
         toastOptions={TOAST_OPTIONS}
       />
+    </div>
+  );
+}
+
+function OrbitIconStrip({
+  subscriptions,
+  filter,
+  selectedId,
+  onPick,
+}: {
+  subscriptions: Subscription[];
+  filter: StatusFilter;
+  selectedId: string | null;
+  onPick: (id: string) => void;
+}) {
+  const items = subscriptions.filter((s) => filter === "all" || s.status === filter);
+  if (!items.length) return null;
+  return (
+    <div className="no-scrollbar mx-auto flex w-max max-w-full gap-1.5 overflow-x-auto rounded-full bg-black/40 px-2 py-1.5 shadow-[0_0_0_1px_rgba(255,255,255,0.08)]">
+      {items.map((s) => {
+        const on = selectedId === s.id;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            onClick={() => onPick(s.id)}
+            aria-label={s.name}
+            className={cn(
+              "size-8 shrink-0 overflow-hidden rounded-full glow-tap",
+              on ? "ring-2 ring-cyan ring-offset-1 ring-offset-void" : "opacity-85",
+            )}
+          >
+            <BrandBadge brandKey={s.brandKey} name={s.name} size={32} />
+          </button>
+        );
+      })}
     </div>
   );
 }

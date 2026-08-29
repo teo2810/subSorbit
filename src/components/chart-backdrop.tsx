@@ -25,7 +25,7 @@ export function ChartBackdrop() {
         className="absolute inset-0 rounded-full"
         style={{
           background:
-            "radial-gradient(circle at 50% 46%, rgba(34,211,238,0.20) 0%, rgba(99,102,241,0.10) 42%, transparent 72%)",
+            "radial-gradient(circle at 50% 46%, rgba(34,211,238,0.38) 0%, rgba(56,189,248,0.16) 38%, rgba(99,102,241,0.08) 62%, transparent 78%)",
         }}
       />
       {stars.map((s) => (
