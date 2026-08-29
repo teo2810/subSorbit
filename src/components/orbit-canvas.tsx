@@ -447,43 +447,19 @@ export function OrbitCanvas({
         dash?: number[],
       ) => {
         const steps = 96;
-        const pts: { x: number; y: number; z: number }[] = [];
+        ctx.beginPath();
         for (let i = 0; i <= steps; i++) {
           const a = (i / steps) * Math.PI * 2;
           const wpos = worldOf(radius, a, inc, node);
           const p = project(wpos.x, wpos.y, wpos.z, rot, tilt, zoom, cx, cy);
-          pts.push({ x: p.x, y: p.y, z: wpos.z });
+          if (i === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
         }
-        // Profondità di campo "leggera": la metà davanti al sole resta
-        // nitida e ben visibile, quella dietro è più sottile e spenta —
-        // così le orbite sul retro non creano confusione visiva, senza
-        // usare sfocature costose che rallenterebbero l'animazione.
-        const drawRun = (isNear: boolean) => {
-          ctx.beginPath();
-          let started = false;
-          for (const pt of pts) {
-            const match = isNear ? pt.z >= 0 : pt.z < 0;
-            if (match) {
-              if (!started) {
-                ctx.moveTo(pt.x, pt.y);
-                started = true;
-              } else {
-                ctx.lineTo(pt.x, pt.y);
-              }
-            } else {
-              started = false;
-            }
-          }
-          ctx.globalAlpha = isNear ? 1 : 0.4;
-          ctx.strokeStyle = color;
-          ctx.lineWidth = isNear ? width : Math.max(0.6, width * 0.7);
-          ctx.setLineDash(dash ?? []);
-          ctx.stroke();
-          ctx.setLineDash([]);
-          ctx.globalAlpha = 1;
-        };
-        drawRun(false);
-        drawRun(true);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.setLineDash(dash ?? []);
+        ctx.stroke();
+        ctx.setLineDash([]);
       };
 
       const selected = sim.bodies.find((b) => b.id === sim.focusId);
@@ -574,7 +550,7 @@ export function OrbitCanvas({
       const drawBody = (b: Body) => {
         const isFar = b.pz < 0;
         ctx.save();
-        if (isFar) ctx.globalAlpha = 0.7;
+        if (isFar) ctx.globalAlpha = 0.92;
 
         if (b.paused) {
           const cloud = ctx.createRadialGradient(
