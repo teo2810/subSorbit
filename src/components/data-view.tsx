@@ -156,9 +156,9 @@ function CategoryRing({
   onSelect: (id: string | null) => void;
   active: boolean;
 }) {
-  const size = 236;
+  const size = 316;
   const stroke = 14;
-  const r = (size - stroke) / 2 - 4;
+  const r = 101;
   const cx = size / 2;
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -196,25 +196,35 @@ function CategoryRing({
     ctx.arc(cx, cx, r, start, start + full);
     ctx.stroke();
 
-    const firstCol = slices[0] ? (selected && selected !== slices[0].id ? fade(slices[0].color, 0.28) : slices[0].color) : "#22d3ee";
+    const tint = (s: { id: string; color: string }) =>
+      selected && selected !== s.id ? fade(s.color, 0.28) : s.color;
+    const firstCol = slices[0] ? tint(slices[0]) : "#22d3ee";
+    const lastCol = slices.length ? tint(slices[slices.length - 1]!) : firstCol;
     const grad = ctx.createConicGradient(start, cx, cx);
     let t = 0;
     grad.addColorStop(0, firstCol);
     slices.forEach((s) => {
       const share = (s.value / total) * 0.75;
-      const col = selected && selected !== s.id ? fade(s.color, 0.28) : s.color;
       t += share;
-      grad.addColorStop(Math.min(0.75, t), col);
+      grad.addColorStop(Math.min(0.749, Math.max(0.001, t)), tint(s));
     });
-    grad.addColorStop(0.7501, firstCol);
+    grad.addColorStop(0.75, lastCol);
+    grad.addColorStop(0.92, lastCol);
+    grad.addColorStop(0.999, firstCol);
     grad.addColorStop(1, firstCol);
 
     ctx.save();
     ctx.lineCap = "round";
     ctx.strokeStyle = grad;
-    ctx.filter = "blur(10px)";
+    ctx.filter = "blur(16px)";
+    ctx.globalAlpha = 0.7;
+    ctx.lineWidth = 18;
+    ctx.beginPath();
+    ctx.arc(cx, cx, r, start, start + sweep);
+    ctx.stroke();
+    ctx.filter = "blur(7px)";
     ctx.globalAlpha = 0.55;
-    ctx.lineWidth = stroke + 2;
+    ctx.lineWidth = 16;
     ctx.beginPath();
     ctx.arc(cx, cx, r, start, start + sweep);
     ctx.stroke();
@@ -258,7 +268,7 @@ function CategoryRing({
       width={size}
       height={size}
       onClick={hit}
-      className="absolute inset-0 h-full w-full cursor-pointer"
+      className="absolute left-1/2 top-1/2 h-[316px] w-[316px] -translate-x-1/2 -translate-y-1/2 cursor-pointer"
     />
   );
 }
