@@ -2,10 +2,16 @@ import { useRef } from "react";
 import { Download, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { CloseButton } from "./close-button";
+import { parseBackupPayload } from "@/lib/domain";
 import { useAppStore } from "@/lib/store";
-import type { Subscription } from "@/lib/types";
 
-export function SettingsSheet({ onClose }: { onClose: () => void }) {
+export function SettingsSheet({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const displayName = useAppStore((s) => s.displayName);
   const email = useAppStore((s) => s.email);
   const subscriptions = useAppStore((s) => s.subscriptions);
@@ -29,24 +35,37 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
     toast.success("Backup esportato");
   };
 
+  const pickFile = () => {
+    onClose();
+    window.setTimeout(() => fileRef.current?.click(), 180);
+  };
+
   const importJson = async (file: File) => {
     try {
-      const data = JSON.parse(await file.text()) as {
-        subscriptions?: Subscription[];
-        displayName?: string;
-        email?: string;
-      };
-      if (!Array.isArray(data.subscriptions)) throw new Error("formato");
+      const data = parseBackupPayload(JSON.parse(await file.text()));
       replaceAll(data.subscriptions);
       if (data.displayName) setDisplayName(data.displayName);
       if (data.email) setEmail(data.email);
-      toast.success("Backup importato");
+      toast.success(`Importati ${data.subscriptions.length} abbonamenti`);
     } catch {
       toast.error("File non valido");
     }
   };
 
   return (
+    <>
+    <input
+      ref={fileRef}
+      type="file"
+      accept="application/json,.json"
+      className="pointer-events-none fixed h-0 w-0 opacity-0"
+      onChange={(e) => {
+        const f = e.target.files?.[0];
+        if (f) void importJson(f);
+        e.target.value = "";
+      }}
+    />
+    {open ? (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       <button
         type="button"
@@ -88,23 +107,12 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
           </button>
           <button
             type="button"
-            onClick={() => fileRef.current?.click()}
+            onClick={pickFile}
             className="glass-soft glow-tap flex h-12 items-center justify-center gap-2 rounded-lg text-sm"
           >
             <Upload className="size-4" /> Importa
           </button>
         </div>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="application/json"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void importJson(f);
-            e.target.value = "";
-          }}
-        />
         <button
           type="button"
           onClick={() => {
@@ -118,5 +126,7 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
         </button>
       </div>
     </div>
+    ) : null}
+    </>
   );
 }

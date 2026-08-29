@@ -126,7 +126,7 @@ export function AppShell() {
   const openSettings = () => setSettingsOpen(true);
 
   return (
-    <div className="relative mx-auto flex h-dvh w-full flex-col overflow-hidden text-fg">
+    <div className="relative mx-auto flex h-full w-full max-w-full flex-col overflow-hidden text-fg overscroll-none">
       <div
         className="relative min-h-0 flex-1 overflow-hidden"
         onPointerDown={onSwipeStart}
@@ -270,7 +270,7 @@ export function AppShell() {
         />
       )}
 
-      {settingsOpen && <SettingsSheet onClose={() => setSettingsOpen(false)} />}
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
       <HowItWorks open={guideOpen} onClose={closeGuide} />
       <Toaster
