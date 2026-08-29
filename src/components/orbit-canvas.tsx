@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { activeMonthlyTotal, classify, frequencyBand, monthlyEquivalent, orbitUrgency } from "@/lib/domain";
+import { activeMonthlyTotal, classify, monthlyEquivalent } from "@/lib/domain";
 import { formatEuroCompact } from "@/lib/format";
 import { drawBrand, getBrand, preloadBrandIcons } from "@/lib/logos";
 import type { StatusFilter, Subscription } from "@/lib/types";
@@ -100,87 +100,43 @@ function hash(n: number) {
 function buildBodies(subs: Subscription[], filter: StatusFilter): Body[] {
   const total = activeMonthlyTotal(subs);
   const shown = subs.filter((s) => visibleForFilter(s, filter));
-  const inner = shown.filter((s) => classify(s, total) !== "trash");
-  const trash = shown.filter((s) => classify(s, total) === "trash");
+  const n = shown.length;
+  if (!n) return [];
 
-  const ranked = [...inner].sort((a, b) => {
-    const fa = frequencyBand(a.frequency) - frequencyBand(b.frequency);
-    if (fa !== 0) return fa;
-    return monthlyEquivalent(b) - monthlyEquivalent(a);
-  });
+  const ranked = [...shown].sort(
+    (a, b) => monthlyEquivalent(b) - monthlyEquivalent(a),
+  );
 
-  const drafted = ranked.map((s, i) => {
-    const equiv = monthlyEquivalent(s);
-    const share = total > 0 ? equiv / Math.max(total, equiv) : 0.08;
+  const ringCount = Math.min(6, Math.max(3, Math.ceil(n / 5)));
+  const innerMin = 92;
+  const innerMax = 210;
+  const gap = ringCount === 1 ? 0 : (innerMax - innerMin) / (ringCount - 1);
+  const perRing = Math.ceil(n / ringCount);
+
+  return ranked.map((s, i) => {
+    const ring = Math.min(ringCount - 1, Math.floor(i / perRing));
+    const slot = i - ring * perRing;
+    const onThis = Math.min(perRing, n - ring * perRing);
+    const radius = innerMin + ring * gap;
+    const angle = (slot / Math.max(onThis, 1)) * Math.PI * 2 + ring * 0.35;
     return {
-      s,
-      size: 7 + Math.pow(share, 0.62) * 54,
-      omega: 0.032 + orbitUrgency(s) * 0.08,
-      i,
-    };
-  });
-
-  const innerMin = 108;
-  const innerMax = 208;
-  let cursor = innerMin;
-  const radii: number[] = [];
-  drafted.forEach((d, i) => {
-    if (i > 0) {
-      const prev = drafted[i - 1]!;
-      cursor += Math.max(22, (prev.size + d.size) * 0.7 + 14);
-    }
-    radii.push(cursor);
-  });
-  const last = radii[radii.length - 1] ?? innerMin;
-  const scale = last > innerMax ? (innerMax - innerMin) / Math.max(last - innerMin, 1) : 1;
-  const bodies: Body[] = drafted.map((d, i) => {
-    const radius = innerMin + (radii[i]! - innerMin) * scale;
-    let angle = (i * 2.399 + d.s.frequency.length) % (Math.PI * 2);
-    if (i > 0 && Math.abs(d.omega - drafted[i - 1]!.omega) < 0.14) {
-      angle = ((i - 1) * 2.399 + Math.PI) % (Math.PI * 2);
-    }
-    return {
-      id: d.s.id,
-      name: d.s.name,
-      kind: classify(d.s, total),
-      brandKey: d.s.brandKey,
-      color: getBrand(d.s.brandKey).color,
-      radius,
-      angle,
-      size: d.size,
-      inc: (hash(i + 3) - 0.5) * 0.42,
-      node: (hash(i + 17) - 0.5) * 0.7,
-      omega: d.omega,
-      px: 0,
-      py: 0,
-      pz: 0,
-      pr: d.size,
-    };
-  });
-
-  const trashR = 248;
-  trash.forEach((s, i) => {
-    const equiv = monthlyEquivalent(s);
-    const share = total > 0 ? equiv / Math.max(total, 1) : 0.05;
-    bodies.push({
       id: s.id,
       name: s.name,
-      kind: "trash",
+      kind: classify(s, total),
       brandKey: s.brandKey,
       color: getBrand(s.brandKey).color,
-      radius: trashR,
-      angle: (i * (Math.PI * 2)) / Math.max(trash.length, 1) + 0.4,
-      size: 8 + share * 14,
-      inc: 0.14,
-      node: 0.22,
-      omega: 0.028,
+      radius,
+      angle,
+      size: 15,
+      inc: (hash(ring + 3) - 0.5) * 0.38,
+      node: (hash(ring + 17) - 0.5) * 0.55,
+      omega: 0.026 + ring * 0.008 + hash(i + 8) * 0.01,
       px: 0,
       py: 0,
       pz: 0,
-      pr: 10,
-    });
+      pr: 15,
+    };
   });
-  return bodies;
 }
 
 export function trashRadius(bodies: Body[]) {
@@ -210,10 +166,10 @@ export function OrbitCanvas({
 
   const simRef = useRef({
     rot: 0.55,
-    tilt: 0.72,
+    tilt: 0.68,
     zoom: 1,
     targetRot: 0.55,
-    targetTilt: 0.72,
+    targetTilt: 0.68,
     targetZoom: 1,
     cyFactor: 0.42,
     targetCyFactor: 0.42,
@@ -391,7 +347,7 @@ export function OrbitCanvas({
       sim.followId = null;
       sim.targetZoom = 1;
       sim.targetRot = 0.55;
-      sim.targetTilt = 0.72;
+      sim.targetTilt = 0.68;
       sim.targetCyFactor = 0.42;
     };
 
@@ -491,28 +447,13 @@ export function OrbitCanvas({
       };
 
       const selected = sim.bodies.find((b) => b.id === sim.focusId);
-
+      const rings = new Map<number, { inc: number; node: number }>();
       for (const b of sim.bodies) {
-        if (b.kind === "trash") continue;
-        const on = selected?.id === b.id;
-        drawRing(
-          b.radius,
-          b.inc,
-          b.node,
-          on ? `${b.color}` : "rgba(165,230,255,0.28)",
-          on ? 1.55 : 0.75,
-        );
+        if (!rings.has(b.radius)) rings.set(b.radius, { inc: b.inc, node: b.node });
       }
-      drawRing(sim.trashR, 0.14, 0.22, "rgba(190,200,220,0.22)", 0.9, [3, 7]);
-
-      for (const d of sim.debris) {
-        d.angle += 0.1 * spd * dt;
-        const wpos = worldOf(sim.trashR + d.rJit, d.angle, 0.16, 0.35);
-        const p = project(wpos.x, wpos.y, wpos.z, rot, tilt, zoom, cx, cy);
-        ctx.fillStyle = `rgba(200,190,170,${d.a * p.p})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, d.size * p.p * zoom, 0, Math.PI * 2);
-        ctx.fill();
+      for (const [radius, o] of rings) {
+        const on = selected?.radius === radius;
+        drawRing(radius, o.inc, o.node, "rgba(180,220,255,0.34)", on ? 1.4 : 0.85);
       }
 
       for (const b of sim.bodies) {

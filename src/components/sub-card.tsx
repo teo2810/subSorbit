@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { BrandBadge } from "@/lib/logos";
+import { BrandBadge, BrandWatermark } from "@/lib/logos";
 import { cn } from "@/lib/cn";
 import {
   categoryLabel,
@@ -60,11 +60,14 @@ export function SubCard({
       onPointerCancel={endPress}
       onContextMenu={(e) => e.preventDefault()}
       className={cn(
-        "glass-soft glow-tap relative flex w-full items-center gap-3 rounded-lg border-l-[3px] py-3 pr-3 pl-3 text-left",
+        "glass-soft glow-tap relative flex w-full items-center gap-3 overflow-hidden rounded-lg border-l-[3px] py-3 pr-3 pl-3 text-left",
         border,
         sub.status !== "active" && "opacity-70",
       )}
     >
+      <span className="pointer-events-none absolute -right-3 -top-4 h-24 w-28 opacity-80">
+        <BrandWatermark brandKey={sub.brandKey} name={sub.name} />
+      </span>
       <BrandBadge brandKey={sub.brandKey} name={sub.name} size={44} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">

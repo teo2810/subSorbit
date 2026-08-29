@@ -382,3 +382,64 @@ export function BrandBadge({
   );
 }
 
+export function BrandWatermark({
+  brandKey,
+  name,
+  className,
+}: {
+  brandKey: string;
+  name?: string;
+  className?: string;
+}) {
+  const brand = getBrand(brandKey);
+  const candidates = useMemo(
+    () => remoteIconCandidates(brandKey, name ?? brand.name),
+    [brandKey, name, brand.name],
+  );
+  const [idx, setIdx] = useState(0);
+  const src = candidates[idx];
+  return (
+    <span
+      className={className}
+      aria-hidden
+      style={{
+        display: "block",
+        width: "100%",
+        height: "100%",
+      }}
+    >
+      {src ? (
+        <img
+          key={src}
+          src={src}
+          alt=""
+          onError={() => setIdx((i) => i + 1)}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            filter: "blur(1.2px)",
+            opacity: 0.22,
+          }}
+        />
+      ) : (
+        <span
+          style={{
+            display: "flex",
+            height: "100%",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 72,
+            fontWeight: 700,
+            color: "#fff",
+            opacity: 0.12,
+            filter: "blur(2px)",
+          }}
+        >
+          {brand.letter}
+        </span>
+      )}
+    </span>
+  );
+}
+

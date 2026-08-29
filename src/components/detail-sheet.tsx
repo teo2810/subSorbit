@@ -9,7 +9,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { BrandBadge, getBrand } from "@/lib/logos";
+import { BrandWatermark, getBrand } from "@/lib/logos";
 import {
   bodyKindLabel,
   CATEGORIES,
@@ -105,10 +105,8 @@ export function DetailSheet({
         }}
       >
         <div className="relative shrink-0 px-4 pt-4">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-28 overflow-hidden">
-            <div className="absolute left-[70%] top-1/2 -translate-x-1/2 -translate-y-[35%] opacity-[0.13] blur-[0.5px]">
-              <BrandBadge brandKey={sub.brandKey} name={sub.name} size={104} />
-            </div>
+          <div className="pointer-events-none absolute -right-6 -top-8 h-40 w-48 overflow-hidden">
+            <BrandWatermark brandKey={sub.brandKey} name={sub.name} />
           </div>
           <div className="relative mb-3 flex items-start gap-2">
             <div className="min-w-0 flex-1 pr-8">
