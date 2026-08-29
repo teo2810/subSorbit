@@ -75,6 +75,11 @@ export function DataView({
                   ? "Spesa di questo mese"
                   : "Spesa di quest’anno"}
             </p>
+            {selected && total > 0 ? (
+              <p className="mt-1.5 text-[11px] text-cyan">
+                {Math.round((selected.value / total) * 100)}% della spesa
+              </p>
+            ) : null}
           </div>
           </div>
         </div>
@@ -151,9 +156,9 @@ function CategoryRing({
   onSelect: (id: string | null) => void;
   active: boolean;
 }) {
-  const size = 280;
-  const stroke = 16;
-  const r = 102;
+  const size = 236;
+  const stroke = 14;
+  const r = (size - stroke) / 2 - 4;
   const cx = size / 2;
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -181,7 +186,16 @@ function CategoryRing({
     ctx.clearRect(0, 0, size, size);
 
     const start = (135 * Math.PI) / 180;
-    const sweep = (270 * Math.PI) / 180 * Math.max(0.001, grow);
+    const full = (270 * Math.PI) / 180;
+    const sweep = full * Math.max(0.001, grow);
+
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(165,243,252,0.16)";
+    ctx.lineWidth = stroke;
+    ctx.beginPath();
+    ctx.arc(cx, cx, r, start, start + full);
+    ctx.stroke();
+
     const grad = ctx.createConicGradient(start, cx, cx);
     let t = 0;
     slices.forEach((s, i) => {
@@ -189,13 +203,10 @@ function CategoryRing({
       const col = selected && selected !== s.id ? fade(s.color, 0.28) : s.color;
       if (i === 0) grad.addColorStop(0, col);
       t += share;
-      grad.addColorStop(Math.min(0.749, t), col);
+      grad.addColorStop(Math.min(0.75, t), col);
     });
-    grad.addColorStop(0.75, slices.length ? (selected && selected !== slices[slices.length - 1]!.id ? fade(slices[slices.length - 1]!.color, 0.28) : slices[slices.length - 1]!.color) : "#22d3ee");
-    grad.addColorStop(0.751, "rgba(0,0,0,0)");
-    grad.addColorStop(1, "rgba(0,0,0,0)");
 
-    const strokeArc = (width: number, alpha: number) => {
+    const paint = (width: number, alpha: number) => {
       ctx.save();
       ctx.globalAlpha = alpha;
       ctx.lineWidth = width;
@@ -207,10 +218,8 @@ function CategoryRing({
       ctx.restore();
     };
 
-    strokeArc(56, 0.12);
-    strokeArc(36, 0.2);
-    strokeArc(24, 0.35);
-    strokeArc(stroke, 1);
+    paint(22, 0.28);
+    paint(stroke, 1);
   }, [slices, selected, grow, total]);
 
   const hit = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -244,8 +253,7 @@ function CategoryRing({
       width={size}
       height={size}
       onClick={hit}
-      className="h-[280px] w-[280px] cursor-pointer"
-      style={{ margin: "-22px" }}
+      className="absolute inset-0 h-full w-full cursor-pointer"
     />
   );
 }
