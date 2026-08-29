@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { BrandDef, CategoryId, Frequency } from "./types";
 
 type Row = [
@@ -173,7 +173,7 @@ export const BRAND_ICON: Record<string, "svg" | "png"> = {
   headspace: "svg",
   hubspot: "svg",
   icloud: "svg",
-  infinity: "png",
+  infinity: "svg",
   justeat: "svg",
   kindle: "svg",
   mcfit: "png",
@@ -237,6 +237,46 @@ export function brandIconUrl(key: string): string | null {
   return ext ? `${import.meta.env.BASE_URL}brands/${key}.${ext}` : null;
 }
 
+/**
+ * Per i brand non censiti localmente, tentiamo di recuperare un'icona
+ * "vera" al volo invece di tenere un database enorme di loghi.
+ *
+ * Oggi usiamo il servizio favicon di Google (gratuito, nessuna chiave,
+ * nessun limite pratico) con un dominio indovinato dal nome digitato.
+ * È un'euristica: funziona bene per nomi semplici ("Netflix" -> netflix.com)
+ * e fallisce silenziosamente per nomi più articolati, ricadendo sul cerchio
+ * con l'iniziale come sempre.
+ *
+ * Per una qualità superiore (vettoriali reali) si può registrare gratis un
+ * client ID su brandfetch.com/developers e valorizzare BRANDFETCH_CLIENT_ID:
+ * verrà provato per primo, prima del favicon di Google.
+ */
+const BRANDFETCH_CLIENT_ID = ""; // opzionale: incolla qui il tuo client ID gratuito
+
+function guessDomain(name: string): string | null {
+  const cleaned = name
+    .trim()
+    .toLowerCase()
+    .replace(/\+.*$/, "")
+    .replace(/[^a-z0-9 ]/g, "")
+    .trim();
+  if (!cleaned) return null;
+  const firstWord = cleaned.split(/\s+/)[0];
+  if (!firstWord || firstWord.length < 2) return null;
+  return `${firstWord}.com`;
+}
+
+export function remoteIconCandidates(name: string): string[] {
+  const domain = guessDomain(name);
+  if (!domain) return [];
+  const candidates: string[] = [];
+  if (BRANDFETCH_CLIENT_ID) {
+    candidates.push(`https://cdn.brandfetch.io/${domain}?c=${BRANDFETCH_CLIENT_ID}`);
+  }
+  candidates.push(`https://www.google.com/s2/favicons?domain=${domain}&sz=128`);
+  return candidates;
+}
+
 const IMG = new Map<string, HTMLImageElement>();
 
 export function getBrandImage(key: string): HTMLImageElement | null {
@@ -298,17 +338,29 @@ export function BrandBadge({
   size = 44,
   letter,
   glass,
+  name,
 }: {
   brandKey: string;
   size?: number;
   letter?: string;
   square?: boolean;
   glass?: boolean;
+  /** Nome digitato dall'utente: usato solo per il fallback via API quando
+   * il brand non è tra quelli censiti localmente. */
+  name?: string;
 }) {
   const brand = getBrand(brandKey);
   const display = letter ?? brand.letter;
   const [broken, setBroken] = useState(false);
-  const src = !broken ? brandIconUrl(brandKey) : null;
+  const localSrc = !broken ? brandIconUrl(brandKey) : null;
+
+  const remoteCandidates = useMemo(
+    () => (localSrc ? [] : remoteIconCandidates(name ?? brand.name)),
+    [localSrc, name, brand.name],
+  );
+  const [remoteIdx, setRemoteIdx] = useState(0);
+  const remoteSrc = !localSrc ? remoteCandidates[remoteIdx] : undefined;
+
   return (
     <span
       className="relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-display font-semibold text-white"
@@ -325,15 +377,20 @@ export function BrandBadge({
       }}
       aria-hidden
     >
-      {src ? (
+      {localSrc ? (
         <img
-          src={src}
+          src={localSrc}
           alt=""
           onError={() => setBroken(true)}
-          style={{
-            width: size * 0.56,
-            height: size * 0.56,
-          }}
+          style={{ width: size * 0.56, height: size * 0.56 }}
+        />
+      ) : remoteSrc ? (
+        <img
+          key={remoteSrc}
+          src={remoteSrc}
+          alt=""
+          onError={() => setRemoteIdx((i) => i + 1)}
+          className="h-full w-full object-cover"
         />
       ) : (
         <span className="leading-none">{display}</span>

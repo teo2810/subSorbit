@@ -66,9 +66,10 @@ export function HomeView({
 
   return (
     <div className="mx-auto flex h-full w-full max-w-[520px] flex-col">
-      <ScreenHeader onSettings={onSettings} />
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-36">
+        <ScreenHeader onSettings={onSettings} sticky />
 
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-36">
+        <div className="px-5">
         <div className="relative mx-auto mt-1 h-[236px] w-[236px]">
           <ChartBackdrop />
           <SpendRing percent={spend.percent} active={active} />
@@ -133,6 +134,7 @@ export function HomeView({
               />
             ))
           )}
+        </div>
         </div>
       </div>
     </div>

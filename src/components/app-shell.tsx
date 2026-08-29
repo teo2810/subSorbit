@@ -150,7 +150,11 @@ export function AppShell() {
           </div>
           <div className="flex h-full w-1/4 shrink-0 flex-col">
             <header className="pointer-events-none relative z-20 shrink-0">
-              <div className="pointer-events-auto mx-auto max-w-[720px]">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 -bottom-8 top-0 bg-gradient-to-b from-[#05070f]/85 via-[#05070f]/55 to-transparent backdrop-blur-xl"
+              />
+              <div className="pointer-events-auto relative mx-auto max-w-[720px]">
                 <ScreenHeader
                   onSettings={openSettings}
                   subtitle={`Spesa mensile ${formatEuroCompact(monthly)}/mese`}

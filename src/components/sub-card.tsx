@@ -65,7 +65,7 @@ export function SubCard({
         sub.status !== "active" && "opacity-70",
       )}
     >
-      <BrandBadge brandKey={sub.brandKey} size={44} />
+      <BrandBadge brandKey={sub.brandKey} name={sub.name} size={44} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="truncate font-display text-sm font-semibold">

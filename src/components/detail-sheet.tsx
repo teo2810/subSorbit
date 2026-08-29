@@ -105,8 +105,10 @@ export function DetailSheet({
         }}
       >
         <div className="relative shrink-0 px-4 pt-4">
-          <div className="pointer-events-none absolute -top-10 -right-4 opacity-[0.18]">
-            <BrandBadge brandKey={sub.brandKey} size={128} />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-28 overflow-hidden">
+            <div className="absolute left-[70%] top-1/2 -translate-x-1/2 -translate-y-[35%] opacity-[0.13] blur-[0.5px]">
+              <BrandBadge brandKey={sub.brandKey} name={sub.name} size={104} />
+            </div>
           </div>
           <div className="relative mb-3 flex items-start gap-2">
             <div className="min-w-0 flex-1 pr-8">

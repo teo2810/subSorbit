@@ -450,20 +450,44 @@ export function OrbitCanvas({
         width: number,
         dash?: number[],
       ) => {
-        ctx.beginPath();
         const steps = 96;
+        const pts: { x: number; y: number; z: number }[] = [];
         for (let i = 0; i <= steps; i++) {
           const a = (i / steps) * Math.PI * 2;
           const wpos = worldOf(radius, a, inc, node);
           const p = project(wpos.x, wpos.y, wpos.z, rot, tilt, zoom, cx, cy);
-          if (i === 0) ctx.moveTo(p.x, p.y);
-          else ctx.lineTo(p.x, p.y);
+          pts.push({ x: p.x, y: p.y, z: wpos.z });
         }
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width;
-        ctx.setLineDash(dash ?? []);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        // Profondità di campo "leggera": la metà davanti al sole resta
+        // nitida e ben visibile, quella dietro è più sottile e spenta —
+        // così le orbite sul retro non creano confusione visiva, senza
+        // usare sfocature costose che rallenterebbero l'animazione.
+        const drawRun = (isNear: boolean) => {
+          ctx.beginPath();
+          let started = false;
+          for (const pt of pts) {
+            const match = isNear ? pt.z >= 0 : pt.z < 0;
+            if (match) {
+              if (!started) {
+                ctx.moveTo(pt.x, pt.y);
+                started = true;
+              } else {
+                ctx.lineTo(pt.x, pt.y);
+              }
+            } else {
+              started = false;
+            }
+          }
+          ctx.globalAlpha = isNear ? 1 : 0.4;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = isNear ? width : Math.max(0.6, width * 0.7);
+          ctx.setLineDash(dash ?? []);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+        };
+        drawRun(false);
+        drawRun(true);
       };
 
       const selected = sim.bodies.find((b) => b.id === sim.focusId);
@@ -503,7 +527,9 @@ export function OrbitCanvas({
 
       const sorted = [...sim.bodies].sort((a, b) => a.pz - b.pz);
       for (const b of sorted) {
+        const isFar = b.pz < 0;
         ctx.save();
+        if (isFar) ctx.globalAlpha = 0.62;
         ctx.translate(b.px, b.py + b.pr * 0.9);
         ctx.scale(1, 0.28);
         ctx.fillStyle = "rgba(0,0,0,0.28)";
@@ -512,8 +538,10 @@ export function OrbitCanvas({
         ctx.fill();
         ctx.restore();
 
+        ctx.save();
+        if (isFar) ctx.globalAlpha = 0.62;
+
         if (b.kind === "cancelled") {
-          ctx.save();
           for (let i = 0; i < 6; i++) {
             const ang = now * 0.0006 + i * 1.05;
             ctx.fillStyle = `rgba(6,8,18,${0.32 + (i % 3) * 0.1})`;
@@ -527,7 +555,6 @@ export function OrbitCanvas({
             );
             ctx.fill();
           }
-          ctx.restore();
         }
 
         if (sim.focusId === b.id) {
@@ -549,6 +576,7 @@ export function OrbitCanvas({
         }
 
         drawBrand(ctx, b.brandKey, b.px, b.py, b.pr);
+        ctx.restore();
 
         if (sim.hoverId === b.id || sim.focusId === b.id) {
           ctx.font = `600 ${Math.max(10, Math.min(13, b.pr * 0.7))}px Outfit, sans-serif`;
@@ -561,19 +589,55 @@ export function OrbitCanvas({
 
       const sunP = project(0, 0, 0, rot, tilt, zoom, cx, cy);
       const sunR = 22 * zoom * sunP.p;
-      const sg = ctx.createRadialGradient(sunP.x, sunP.y, sunR * 0.2, sunP.x, sunP.y, sunR * 3.2);
-      sg.addColorStop(0, "rgba(255,255,255,0.95)");
-      sg.addColorStop(0.35, "rgba(125,211,252,0.7)");
+      const pulse = 0.88 + Math.sin(now * 0.0018) * 0.12;
+
+      // Corona esterna: bagliore ampio e morbido, respira lentamente.
+      const outer = ctx.createRadialGradient(
+        sunP.x,
+        sunP.y,
+        sunR * 0.3,
+        sunP.x,
+        sunP.y,
+        sunR * 5.2 * pulse,
+      );
+      outer.addColorStop(0, "rgba(103,232,249,0.55)");
+      outer.addColorStop(0.4, "rgba(34,211,238,0.28)");
+      outer.addColorStop(1, "rgba(34,211,238,0)");
+      ctx.fillStyle = outer;
+      ctx.beginPath();
+      ctx.arc(sunP.x, sunP.y, sunR * 5.2 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Bagliore intenso ravvicinato: molto più acceso, cyan puro.
+      const sg = ctx.createRadialGradient(sunP.x, sunP.y, sunR * 0.15, sunP.x, sunP.y, sunR * 3.4);
+      sg.addColorStop(0, "rgba(255,255,255,0.98)");
+      sg.addColorStop(0.32, "rgba(165,243,252,0.9)");
+      sg.addColorStop(0.65, "rgba(34,211,238,0.55)");
       sg.addColorStop(1, "rgba(34,211,238,0)");
       ctx.fillStyle = sg;
       ctx.beginPath();
-      ctx.arc(sunP.x, sunP.y, sunR * 3.2, 0, Math.PI * 2);
+      ctx.arc(sunP.x, sunP.y, sunR * 3.4, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "#e8f6ff";
+
+      // Nucleo: bianco brillante al centro che sfuma in cyan saturo al bordo.
+      const core = ctx.createRadialGradient(
+        sunP.x - sunR * 0.25,
+        sunP.y - sunR * 0.28,
+        sunR * 0.05,
+        sunP.x,
+        sunP.y,
+        sunR,
+      );
+      core.addColorStop(0, "#ffffff");
+      core.addColorStop(0.45, "#e8fdff");
+      core.addColorStop(0.75, "#67e8f9");
+      core.addColorStop(1, "#0891b2");
+      ctx.fillStyle = core;
       ctx.beginPath();
       ctx.arc(sunP.x, sunP.y, sunR, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = "rgba(8,16,32,0.88)";
+
+      ctx.fillStyle = "rgba(6,14,28,0.9)";
       ctx.font = `700 ${Math.max(11, sunR * 0.42)}px Outfit, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";

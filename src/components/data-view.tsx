@@ -52,8 +52,9 @@ export function DataView({
 
   return (
     <div className="mx-auto flex h-full w-full max-w-[520px] flex-col">
-      <ScreenHeader onSettings={onSettings} />
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-36">
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-36">
+        <ScreenHeader onSettings={onSettings} sticky />
+        <div className="px-5">
         <div className="relative mx-auto mt-1 h-[236px] w-[236px]">
           <ChartBackdrop />
           <CategoryRing
@@ -130,6 +131,7 @@ export function DataView({
         <div className="mt-5 grid grid-cols-2 gap-3">
           <RankList title="Più costosi" items={ranked.top} onOpen={onOpen} total={total} />
           <RankList title="Più economici" items={ranked.low} onOpen={onOpen} total={total} />
+        </div>
         </div>
       </div>
     </div>
@@ -268,7 +270,7 @@ function RankList({
               onClick={() => onOpen(s.id)}
               className="flex w-full items-center gap-2 text-left"
             >
-              <BrandBadge brandKey={s.brandKey} size={28} />
+              <BrandBadge brandKey={s.brandKey} name={s.name} size={28} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-xs font-medium">{s.name}</span>
                 <span className="text-[10px] text-muted">

@@ -116,36 +116,49 @@ export function OrbitLockup({
 export function ScreenHeader({
   onSettings,
   subtitle,
+  sticky = false,
 }: {
   onSettings: () => void;
   subtitle?: string;
+  sticky?: boolean;
 }) {
   const [spin, setSpin] = useState(false);
   return (
-    <header className="flex shrink-0 items-center justify-between px-5 pt-5 pb-2">
-      <div className="flex min-w-0 items-center gap-2">
-        <OrbitSun size={26} />
-        <div className="min-w-0">
-          <h1 className="leading-none">
-            <OrbitMark size="sm" />
-          </h1>
-          {subtitle ? (
-            <p className="mt-1 truncate text-[11px] text-muted">{subtitle}</p>
-          ) : null}
+    <header
+      className={cn(
+        "relative z-20 shrink-0",
+        sticky && "sticky top-0",
+      )}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -bottom-7 top-0 bg-gradient-to-b from-[#05070f]/85 via-[#05070f]/55 to-transparent backdrop-blur-xl"
+      />
+      <div className="relative flex items-center justify-between px-5 pt-5 pb-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <OrbitSun size={26} />
+          <div className="min-w-0">
+            <h1 className="leading-none">
+              <OrbitMark size="sm" />
+            </h1>
+            {subtitle ? (
+              <p className="mt-1 truncate text-[11px] text-muted">{subtitle}</p>
+            ) : null}
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            setSpin(true);
+            window.setTimeout(() => setSpin(false), 480);
+            onSettings();
+          }}
+          aria-label="Impostazioni"
+          className="glow-tap flex size-10 items-center justify-center rounded-full bg-white/8 text-muted"
+        >
+          <Settings className={cn("size-5", spin && "gear-spin")} />
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={() => {
-          setSpin(true);
-          window.setTimeout(() => setSpin(false), 480);
-          onSettings();
-        }}
-        aria-label="Impostazioni"
-        className="glow-tap flex size-10 items-center justify-center rounded-full bg-white/8 text-muted"
-      >
-        <Settings className={cn("size-5", spin && "gear-spin")} />
-      </button>
     </header>
   );
 }

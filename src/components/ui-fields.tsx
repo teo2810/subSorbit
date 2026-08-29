@@ -52,7 +52,10 @@ export function GlassSelect({
         />
       </button>
       {open && (
-        <ul className="glass no-scrollbar absolute z-30 mt-1 max-h-52 w-full overflow-y-auto rounded-2xl p-1">
+        <ul
+          className="no-scrollbar absolute z-30 mt-1 max-h-52 w-full overflow-y-auto rounded-2xl border border-white/12 p-1 shadow-[0_18px_50px_rgba(0,0,0,0.5)]"
+          style={{ background: "rgb(11 15 32 / 0.98)", backdropFilter: "blur(18px)" }}
+        >
           {options.map((o) => (
             <li key={o.id}>
               <button

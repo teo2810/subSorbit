@@ -102,8 +102,10 @@ export function SubForm({
       >
         <div className="relative shrink-0 px-4 pt-4">
           {picked && brandKey !== "custom" ? (
-            <div className="pointer-events-none absolute -top-10 -right-4 opacity-[0.18]">
-              <BrandBadge brandKey={brandKey} size={128} />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-28 overflow-hidden">
+              <div className="absolute left-[70%] top-1/2 -translate-x-1/2 -translate-y-[35%] opacity-[0.13] blur-[0.5px]">
+                <BrandBadge brandKey={brandKey} name={name} size={104} />
+              </div>
             </div>
           ) : null}
           <div className="relative mb-3 flex items-start">

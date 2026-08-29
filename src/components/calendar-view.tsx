@@ -54,8 +54,9 @@ export function CalendarView({
 
   return (
     <div className="mx-auto flex h-full w-full max-w-[520px] flex-col">
-      <ScreenHeader onSettings={onSettings} />
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-36">
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-36">
+        <ScreenHeader onSettings={onSettings} sticky />
+        <div className="px-5">
         <div className="glass-soft rounded-lg p-3">
           <div className="mb-3 flex items-center justify-between px-1">
             <button
@@ -116,7 +117,7 @@ export function CalendarView({
                           className={i > 0 ? "-ml-1" : ""}
                           style={{ zIndex: 2 - i }}
                         >
-                          <BrandBadge brandKey={h.brandKey} size={12} />
+                          <BrandBadge brandKey={h.brandKey} name={h.name} size={12} />
                         </span>
                       ))}
                     </span>
@@ -165,6 +166,7 @@ export function CalendarView({
               onQuickFocus={() => onQuickFocus(s.id)}
             />
           ))}
+        </div>
         </div>
       </div>
     </div>
