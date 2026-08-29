@@ -14,8 +14,6 @@ import { SettingsSheet } from "./settings-sheet";
 import { SubForm } from "./sub-form";
 import { WelcomeView } from "./welcome-view";
 import { cn } from "@/lib/cn";
-import { activeMonthlyTotal } from "@/lib/domain";
-import { formatEuroCompact } from "@/lib/format";
 import { preloadBrandIcons } from "@/lib/logos";
 import { useAppStore, type OrbitSpeed } from "@/lib/store";
 import type { StatusFilter, TabId } from "@/lib/types";
@@ -61,7 +59,6 @@ export function AppShell() {
     }
   }, []);
 
-  const monthly = activeMonthlyTotal(subscriptions);
   const detail = useMemo(
     () => subscriptions.find((s) => s.id === detailId) ?? null,
     [subscriptions, detailId],
@@ -148,23 +145,8 @@ export function AppShell() {
               active={tab === "home"}
             />
           </div>
-          <div className="flex h-full w-1/4 shrink-0 flex-col">
-            <header className="pointer-events-none relative z-20 shrink-0">
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-x-0 -bottom-8 top-0 bg-gradient-to-b from-[#05070f]/85 via-[#05070f]/55 to-transparent backdrop-blur-xl"
-              />
-              <div className="pointer-events-auto relative mx-auto max-w-[720px]">
-                <ScreenHeader
-                  onSettings={openSettings}
-                  subtitle={`Spesa mensile ${formatEuroCompact(monthly)}/mese`}
-                />
-                <div className="px-5">
-                  <FilterChips value={filter} onChange={setFilter} />
-                </div>
-              </div>
-            </header>
-            <div className="relative min-h-0 flex-1 pb-24">
+          <div className="relative h-full w-1/4 shrink-0">
+            <div className="absolute inset-0 pb-24">
               <OrbitCanvas
                 subscriptions={subscriptions}
                 filter={filter}
@@ -181,7 +163,16 @@ export function AppShell() {
                 }}
                 onFocusDone={() => setFocusId(null)}
               />
-              <div className="pointer-events-none absolute inset-x-0 bottom-28 flex items-end justify-center px-4">
+            </div>
+            <header className="pointer-events-none absolute inset-x-0 top-0 z-20">
+              <div className="pointer-events-auto mx-auto max-w-[720px]">
+                <ScreenHeader onSettings={openSettings} />
+                <div className="px-5">
+                  <FilterChips value={filter} onChange={setFilter} />
+                </div>
+              </div>
+            </header>
+            <div className="pointer-events-none absolute inset-x-0 bottom-28 z-20 flex items-end justify-center px-4">
                 <div className="flex w-full max-w-[720px] items-end justify-between">
                   <button
                     type="button"
@@ -208,7 +199,6 @@ export function AppShell() {
                   </div>
                 </div>
               </div>
-            </div>
           </div>
           <div className="h-full w-1/4 shrink-0">
             <CalendarView

@@ -70,15 +70,15 @@ export function OrbitSun({
       className={cn("shrink-0 overflow-visible", pulse && "sun-pulse")}
       style={{
         filter:
-          "drop-shadow(0 0 4px rgba(255,255,255,0.9)) drop-shadow(0 0 10px rgba(34,211,238,0.85)) drop-shadow(0 0 22px rgba(34,211,238,0.55))",
+          "drop-shadow(0 0 6px rgba(165,243,252,1)) drop-shadow(0 0 16px rgba(34,211,238,1)) drop-shadow(0 0 32px rgba(34,211,238,0.75))",
       }}
     >
       <defs>
         <radialGradient id={`os-${uid}`} cx="36%" cy="32%" r="64%">
           <stop offset="0%" stopColor="#ffffff" />
-          <stop offset="32%" stopColor="#e8f6ff" />
-          <stop offset="62%" stopColor="#67e8f9" />
-          <stop offset="100%" stopColor="#0891b2" />
+          <stop offset="28%" stopColor="#e0fbff" />
+          <stop offset="58%" stopColor="#22d3ee" />
+          <stop offset="100%" stopColor="#06b6d4" />
         </radialGradient>
       </defs>
       <ellipse
@@ -87,13 +87,13 @@ export function OrbitSun({
         rx="26"
         ry="9"
         fill="none"
-        stroke="#22d3ee"
+        stroke="#67e8f9"
         strokeWidth="1.8"
-        opacity="0.55"
+        opacity="0.7"
         transform="rotate(-18 32 34)"
       />
       <circle cx="32" cy="32" r="13.5" fill={`url(#os-${uid})`} />
-      <circle cx="26" cy="26" r="4.2" fill="rgba(255,255,255,0.4)" />
+      <circle cx="26" cy="26" r="4.2" fill="rgba(255,255,255,0.55)" />
     </svg>
   );
 }
@@ -126,25 +126,16 @@ export function ScreenHeader({
   return (
     <header
       className={cn(
-        "relative z-20 shrink-0",
+        "relative z-20 shrink-0 bg-transparent",
         sticky && "sticky top-0",
       )}
     >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 -bottom-7 top-0 bg-gradient-to-b from-[#05070f]/85 via-[#05070f]/55 to-transparent backdrop-blur-xl"
-      />
       <div className="relative flex items-center justify-between px-5 pt-5 pb-2">
         <div className="flex min-w-0 items-center gap-2">
-          <OrbitSun size={26} />
-          <div className="min-w-0">
-            <h1 className="leading-none">
-              <OrbitMark size="sm" />
-            </h1>
-            {subtitle ? (
-              <p className="mt-1 truncate text-[11px] text-muted">{subtitle}</p>
-            ) : null}
-          </div>
+          <OrbitSun size={26} pulse />
+          <h1 className="leading-none">
+            <OrbitMark size="sm" />
+          </h1>
         </div>
         <button
           type="button"
@@ -154,7 +145,7 @@ export function ScreenHeader({
             onSettings();
           }}
           aria-label="Impostazioni"
-          className="glow-tap flex size-10 items-center justify-center rounded-full bg-white/8 text-muted"
+          className="glow-tap flex size-10 items-center justify-center rounded-full bg-transparent text-fg"
         >
           <Settings className={cn("size-5", spin && "gear-spin")} />
         </button>

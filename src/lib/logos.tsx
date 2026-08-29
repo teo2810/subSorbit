@@ -142,123 +142,103 @@ export function matchBrands(q: string): BrandDef[] {
     .slice(0, 12);
 }
 
-export const BRAND_ICON: Record<string, "svg" | "png"> = {
-  adobe: "svg",
-  airbnb: "svg",
-  amazonmusic: "svg",
-  applemusic: "svg",
-  appletv: "svg",
-  atm: "png",
-  audible: "svg",
-  basicfit: "png",
-  bitwarden: "svg",
-  booking: "png",
-  calm: "png",
-  canva: "svg",
-  capcut: "png",
-  claude: "svg",
-  corriere: "png",
-  dazn: "svg",
-  deezer: "svg",
-  deliveroo: "svg",
-  disney: "svg",
-  domain: "png",
-  dropbox: "svg",
-  figma: "svg",
-  geforce: "svg",
-  gemini: "svg",
-  glovo: "svg",
-  googleone: "svg",
-  gworkspace: "svg",
-  headspace: "svg",
-  hubspot: "svg",
-  icloud: "svg",
-  infinity: "svg",
-  justeat: "svg",
-  kindle: "svg",
-  mcfit: "png",
-  microsoft: "svg",
-  midjourney: "png",
-  mubi: "svg",
-  nespresso: "png",
-  netflix: "svg",
-  nintendo: "svg",
-  nordvpn: "svg",
-  notion: "svg",
-  now: "svg",
-  onedrive: "svg",
-  onepassword: "svg",
-  openai: "svg",
-  paramount: "svg",
-  peloton: "svg",
-  perplexity: "svg",
-  playstation: "svg",
-  prima: "png",
-  prime: "svg",
-  repubblica: "png",
-  salesforce: "svg",
-  shopify: "svg",
-  sky: "svg",
-  slack: "svg",
-  spotify: "svg",
-  squarespace: "svg",
-  storytel: "png",
-  strava: "svg",
-  trenitalia: "png",
-  ubereats: "svg",
-  uberone: "svg",
-  verti: "png",
-  xbox: "svg",
-  youtube: "svg",
-  youtubemusic: "svg",
-  zoom: "svg",
-  zooplus: "png",
-  uber: "svg",
-  telepass: "svg",
-  unipol: "svg",
-  vodafone: "svg",
-  tim: "svg",
-  fastweb: "svg",
-  iliad: "svg",
-  windtre: "svg",
-  dimensione: "svg",
-  homobile: "svg",
-  fineco: "svg",
-  bbva: "svg",
-  intesa: "svg",
-  revolut: "svg",
-  n26: "svg",
+type IconMeta = { slug?: string; domain: string };
+
+const ICON_META: Record<string, IconMeta> = {
+  netflix: { slug: "netflix", domain: "netflix.com" },
+  disney: { slug: "disneyplus", domain: "disneyplus.com" },
+  prime: { slug: "primevideo", domain: "primevideo.com" },
+  youtube: { slug: "youtube", domain: "youtube.com" },
+  appletv: { slug: "appletv", domain: "tv.apple.com" },
+  now: { slug: "now", domain: "nowtv.com" },
+  paramount: { slug: "paramountplus", domain: "paramountplus.com" },
+  infinity: { domain: "infinitytv.it" },
+  sky: { slug: "sky", domain: "sky.it" },
+  dazn: { slug: "dazn", domain: "dazn.com" },
+  mubi: { slug: "mubi", domain: "mubi.com" },
+  spotify: { slug: "spotify", domain: "spotify.com" },
+  applemusic: { slug: "applemusic", domain: "music.apple.com" },
+  amazonmusic: { slug: "amazonmusic", domain: "music.amazon.it" },
+  youtubemusic: { slug: "youtubemusic", domain: "music.youtube.com" },
+  deezer: { slug: "deezer", domain: "deezer.com" },
+  audible: { slug: "audible", domain: "audible.it" },
+  storytel: { slug: "storytel", domain: "storytel.com" },
+  kindle: { slug: "amazon", domain: "amazon.it" },
+  corriere: { domain: "corriere.it" },
+  repubblica: { domain: "repubblica.it" },
+  icloud: { slug: "icloud", domain: "icloud.com" },
+  googleone: { slug: "google", domain: "one.google.com" },
+  dropbox: { slug: "dropbox", domain: "dropbox.com" },
+  onedrive: { slug: "microsoftonedrive", domain: "onedrive.live.com" },
+  microsoft: { slug: "microsoft365", domain: "microsoft.com" },
+  gworkspace: { slug: "google", domain: "workspace.google.com" },
+  notion: { slug: "notion", domain: "notion.so" },
+  slack: { slug: "slack", domain: "slack.com" },
+  zoom: { slug: "zoom", domain: "zoom.us" },
+  adobe: { slug: "adobe", domain: "adobe.com" },
+  canva: { slug: "canva", domain: "canva.com" },
+  figma: { slug: "figma", domain: "figma.com" },
+  capcut: { slug: "capcut", domain: "capcut.com" },
+  salesforce: { slug: "salesforce", domain: "salesforce.com" },
+  hubspot: { slug: "hubspot", domain: "hubspot.com" },
+  nordvpn: { slug: "nordvpn", domain: "nordvpn.com" },
+  onepassword: { slug: "1password", domain: "1password.com" },
+  bitwarden: { slug: "bitwarden", domain: "bitwarden.com" },
+  domain: { domain: "nic.it" },
+  shopify: { slug: "shopify", domain: "shopify.com" },
+  squarespace: { slug: "squarespace", domain: "squarespace.com" },
+  openai: { slug: "openai", domain: "openai.com" },
+  claude: { slug: "anthropic", domain: "claude.ai" },
+  gemini: { slug: "googlegemini", domain: "gemini.google.com" },
+  midjourney: { slug: "midjourney", domain: "midjourney.com" },
+  perplexity: { slug: "perplexity", domain: "perplexity.ai" },
+  playstation: { slug: "playstation", domain: "playstation.com" },
+  nintendo: { slug: "nintendo", domain: "nintendo.com" },
+  xbox: { slug: "xbox", domain: "xbox.com" },
+  geforce: { slug: "nvidia", domain: "nvidia.com" },
+  mcfit: { domain: "mcfit.com" },
+  basicfit: { domain: "basic-fit.com" },
+  peloton: { slug: "peloton", domain: "onepeloton.com" },
+  strava: { slug: "strava", domain: "strava.com" },
+  deliveroo: { slug: "deliveroo", domain: "deliveroo.it" },
+  ubereats: { slug: "ubereats", domain: "ubereats.com" },
+  glovo: { slug: "glovo", domain: "glovoapp.com" },
+  justeat: { slug: "justeat", domain: "justeat.it" },
+  nespresso: { slug: "nespresso", domain: "nespresso.com" },
+  nen: { domain: "nen.it" },
+  uberone: { slug: "uber", domain: "uber.com" },
+  uber: { slug: "uber", domain: "uber.com" },
+  telepass: { domain: "telepass.com" },
+  unipol: { domain: "unipolmove.it" },
+  atm: { domain: "atm.it" },
+  trenitalia: { domain: "trenitalia.com" },
+  vodafone: { slug: "vodafone", domain: "vodafone.it" },
+  tim: { domain: "tim.it" },
+  fastweb: { domain: "fastweb.it" },
+  iliad: { slug: "iliad", domain: "iliad.it" },
+  windtre: { domain: "windtre.it" },
+  dimensione: { domain: "dimensionemobile.it" },
+  homobile: { domain: "ho-mobile.it" },
+  fineco: { domain: "finecobank.com" },
+  bbva: { slug: "bbva", domain: "bbva.it" },
+  intesa: { domain: "intesasanpaolo.com" },
+  revolut: { slug: "revolut", domain: "revolut.com" },
+  n26: { slug: "n26", domain: "n26.com" },
+  booking: { slug: "bookingdotcom", domain: "booking.com" },
+  airbnb: { slug: "airbnb", domain: "airbnb.com" },
+  headspace: { slug: "headspace", domain: "headspace.com" },
+  calm: { slug: "calm", domain: "calm.com" },
+  zooplus: { domain: "zooplus.it" },
+  verti: { domain: "verti.it" },
+  prima: { domain: "prima.it" },
 };
-
-export function brandIconUrl(key: string): string | null {
-  const ext = BRAND_ICON[key];
-  // Percorso relativo alla pagina corrente: funziona sia su un dominio
-  // proprio sia su https://utente.github.io/nome-repo/ senza modifiche.
-  return ext ? `${import.meta.env.BASE_URL}brands/${key}.${ext}` : null;
-}
-
-/**
- * Per i brand non censiti localmente, tentiamo di recuperare un'icona
- * "vera" al volo invece di tenere un database enorme di loghi.
- *
- * Oggi usiamo il servizio favicon di Google (gratuito, nessuna chiave,
- * nessun limite pratico) con un dominio indovinato dal nome digitato.
- * È un'euristica: funziona bene per nomi semplici ("Netflix" -> netflix.com)
- * e fallisce silenziosamente per nomi più articolati, ricadendo sul cerchio
- * con l'iniziale come sempre.
- *
- * Per una qualità superiore (vettoriali reali) si può registrare gratis un
- * client ID su brandfetch.com/developers e valorizzare BRANDFETCH_CLIENT_ID:
- * verrà provato per primo, prima del favicon di Google.
- */
-const BRANDFETCH_CLIENT_ID = ""; // opzionale: incolla qui il tuo client ID gratuito
 
 function guessDomain(name: string): string | null {
   const cleaned = name
     .trim()
     .toLowerCase()
     .replace(/\+.*$/, "")
-    .replace(/[^a-z0-9 ]/g, "")
+    .replace(/[^a-z0-9 .]/g, "")
     .trim();
   if (!cleaned) return null;
   const firstWord = cleaned.split(/\s+/)[0];
@@ -266,15 +246,22 @@ function guessDomain(name: string): string | null {
   return `${firstWord}.com`;
 }
 
-export function remoteIconCandidates(name: string): string[] {
-  const domain = guessDomain(name);
-  if (!domain) return [];
-  const candidates: string[] = [];
-  if (BRANDFETCH_CLIENT_ID) {
-    candidates.push(`https://cdn.brandfetch.io/${domain}?c=${BRANDFETCH_CLIENT_ID}`);
+export function remoteIconCandidates(key: string, name?: string): string[] {
+  const meta = ICON_META[key];
+  const domain = meta?.domain ?? guessDomain(name ?? key);
+  const urls: string[] = [];
+  if (domain) {
+    urls.push(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`);
+    urls.push(`https://icons.duckduckgo.com/ip3/${domain}.ico`);
   }
-  candidates.push(`https://www.google.com/s2/favicons?domain=${domain}&sz=128`);
-  return candidates;
+  if (meta?.slug) {
+    urls.push(`https://cdn.simpleicons.org/${meta.slug}/ffffff`);
+  }
+  return urls;
+}
+
+export function brandIconUrl(key: string): string | null {
+  return remoteIconCandidates(key)[0] ?? null;
 }
 
 const IMG = new Map<string, HTMLImageElement>();
@@ -283,17 +270,18 @@ export function getBrandImage(key: string): HTMLImageElement | null {
   if (typeof Image === "undefined") return null;
   const hit = IMG.get(key);
   if (hit) return hit;
-  const url = brandIconUrl(key);
+  const url = remoteIconCandidates(key)[0];
   if (!url) return null;
   const img = new Image();
   img.decoding = "async";
+  if (url.includes("simpleicons.org")) img.crossOrigin = "anonymous";
   img.src = url;
   IMG.set(key, img);
   return img;
 }
 
 export function preloadBrandIcons() {
-  Object.keys(BRAND_ICON).forEach((k) => getBrandImage(k));
+  Object.keys(ICON_META).forEach((k) => getBrandImage(k));
 }
 
 export function drawBrand(
@@ -313,8 +301,8 @@ export function drawBrand(
   ctx.clip();
   const ready = img && img.complete && img.naturalWidth > 0;
   if (ready) {
-    const s = r * 1.22;
-    ctx.drawImage(img, x - s / 2, y - s / 2, s, s);
+    const s = r * 2;
+    ctx.drawImage(img, x - r, y - r, s, s);
   } else {
     const letter = brand.letter.length > 2 ? brand.letter.slice(0, 2) : brand.letter;
     ctx.fillStyle = "#fff";
@@ -351,15 +339,13 @@ export function BrandBadge({
 }) {
   const brand = getBrand(brandKey);
   const display = letter ?? brand.letter;
-  const [broken, setBroken] = useState(false);
-  const localSrc = !broken ? brandIconUrl(brandKey) : null;
-
-  const remoteCandidates = useMemo(
-    () => (localSrc ? [] : remoteIconCandidates(name ?? brand.name)),
-    [localSrc, name, brand.name],
+  const candidates = useMemo(
+    () => remoteIconCandidates(brandKey, name ?? brand.name),
+    [brandKey, name, brand.name],
   );
-  const [remoteIdx, setRemoteIdx] = useState(0);
-  const remoteSrc = !localSrc ? remoteCandidates[remoteIdx] : undefined;
+  const [idx, setIdx] = useState(0);
+  const src = candidates[idx];
+  const isGlyph = Boolean(src?.includes("simpleicons.org"));
 
   return (
     <span
@@ -377,20 +363,17 @@ export function BrandBadge({
       }}
       aria-hidden
     >
-      {localSrc ? (
+      {src ? (
         <img
-          src={localSrc}
+          key={src}
+          src={src}
           alt=""
-          onError={() => setBroken(true)}
-          style={{ width: size * 0.56, height: size * 0.56 }}
-        />
-      ) : remoteSrc ? (
-        <img
-          key={remoteSrc}
-          src={remoteSrc}
-          alt=""
-          onError={() => setRemoteIdx((i) => i + 1)}
-          className="h-full w-full object-cover"
+          onError={() => setIdx((i) => i + 1)}
+          style={
+            isGlyph
+              ? { width: size * 0.56, height: size * 0.56 }
+              : { width: size, height: size, objectFit: "cover" }
+          }
         />
       ) : (
         <span className="leading-none">{display}</span>

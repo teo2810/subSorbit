@@ -278,14 +278,14 @@ export function OrbitCanvas({
     if (!ctx) return;
 
     const seedStars = (w: number, h: number) => {
-      sim.stars = Array.from({ length: 90 }, (_, i) => ({
+      sim.stars = Array.from({ length: 140 }, (_, i) => ({
         x: hash(i + 1) * w,
         y: hash(i + 40) * h,
-        r: 0.4 + hash(i + 9) * 1.2,
-        a: 0.25 + hash(i + 21) * 0.55,
+        r: 0.35 + hash(i + 9) * 1.35,
+        a: 0.18 + hash(i + 21) * 0.62,
         tw: hash(i + 33) * Math.PI * 2,
       }));
-      sim.debris = Array.from({ length: 56 }, (_, i) => ({
+      sim.debris = Array.from({ length: 36 }, (_, i) => ({
         angle: hash(i + 70) * Math.PI * 2,
         rJit: (hash(i + 90) - 0.5) * 22,
         size: 0.7 + hash(i + 50) * 2.4,
@@ -499,11 +499,11 @@ export function OrbitCanvas({
           b.radius,
           b.inc,
           b.node,
-          on ? `${b.color}` : "rgba(170,220,255,0.22)",
-          on ? 1.8 : 0.9,
+          on ? `${b.color}` : "rgba(165,230,255,0.28)",
+          on ? 1.55 : 0.75,
         );
       }
-      drawRing(sim.trashR, 0.14, 0.22, "rgba(180,170,150,0.32)", 1.2, [4, 8]);
+      drawRing(sim.trashR, 0.14, 0.22, "rgba(190,200,220,0.22)", 0.9, [3, 7]);
 
       for (const d of sim.debris) {
         d.angle += 0.1 * spd * dt;
@@ -525,53 +525,72 @@ export function OrbitCanvas({
         b.pr = b.size * p.p * zoom;
       }
 
-      const sorted = [...sim.bodies].sort((a, b) => a.pz - b.pz);
-      for (const b of sorted) {
+      const drawSun = () => {
+        const sunP = project(0, 0, 0, rot, tilt, zoom, cx, cy);
+        const sunR = 22 * zoom * sunP.p;
+        const pulse = 0.9 + Math.sin(now * 0.002) * 0.1;
+
+        const outer = ctx.createRadialGradient(
+          sunP.x,
+          sunP.y,
+          sunR * 0.25,
+          sunP.x,
+          sunP.y,
+          sunR * 4.4 * pulse,
+        );
+        outer.addColorStop(0, "rgba(165,243,252,0.85)");
+        outer.addColorStop(0.28, "rgba(34,211,238,0.45)");
+        outer.addColorStop(0.62, "rgba(34,211,238,0.14)");
+        outer.addColorStop(1, "rgba(34,211,238,0)");
+        ctx.fillStyle = outer;
+        ctx.beginPath();
+        ctx.arc(sunP.x, sunP.y, sunR * 4.4 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        const core = ctx.createRadialGradient(
+          sunP.x - sunR * 0.22,
+          sunP.y - sunR * 0.24,
+          sunR * 0.05,
+          sunP.x,
+          sunP.y,
+          sunR,
+        );
+        core.addColorStop(0, "#ffffff");
+        core.addColorStop(0.38, "#a5f3fc");
+        core.addColorStop(0.72, "#22d3ee");
+        core.addColorStop(1, "#06b6d4");
+        ctx.fillStyle = core;
+        ctx.beginPath();
+        ctx.arc(sunP.x, sunP.y, sunR, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(6,14,28,0.88)";
+        ctx.font = `700 ${Math.max(11, sunR * 0.42)}px Outfit, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(sim.totalLabel, sunP.x, sunP.y);
+      };
+
+      const drawBody = (b: Body) => {
         const isFar = b.pz < 0;
         ctx.save();
-        if (isFar) ctx.globalAlpha = 0.62;
-        ctx.translate(b.px, b.py + b.pr * 0.9);
-        ctx.scale(1, 0.28);
-        ctx.fillStyle = "rgba(0,0,0,0.28)";
-        ctx.beginPath();
-        ctx.arc(0, 0, b.pr * 1.4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-
-        ctx.save();
-        if (isFar) ctx.globalAlpha = 0.62;
-
-        if (b.kind === "cancelled") {
-          for (let i = 0; i < 6; i++) {
-            const ang = now * 0.0006 + i * 1.05;
-            ctx.fillStyle = `rgba(6,8,18,${0.32 + (i % 3) * 0.1})`;
-            ctx.beginPath();
-            ctx.arc(
-              b.px + Math.cos(ang) * b.pr * 0.55,
-              b.py + Math.sin(ang) * b.pr * 0.32,
-              b.pr * (0.75 + (i % 3) * 0.16),
-              0,
-              Math.PI * 2,
-            );
-            ctx.fill();
-          }
-        }
+        if (isFar) ctx.globalAlpha = 0.7;
 
         if (sim.focusId === b.id) {
           const halo = ctx.createRadialGradient(
             b.px,
             b.py,
-            b.pr * 0.7,
+            b.pr * 0.85,
             b.px,
             b.py,
-            b.pr * 2.1,
+            b.pr * 1.85,
           );
           halo.addColorStop(0, `${b.color}00`);
-          halo.addColorStop(0.45, `${b.color}55`);
+          halo.addColorStop(0.55, `${b.color}40`);
           halo.addColorStop(1, `${b.color}00`);
           ctx.fillStyle = halo;
           ctx.beginPath();
-          ctx.arc(b.px, b.py, b.pr * 2.1, 0, Math.PI * 2);
+          ctx.arc(b.px, b.py, b.pr * 1.85, 0, Math.PI * 2);
           ctx.fill();
         }
 
@@ -585,63 +604,14 @@ export function OrbitCanvas({
           ctx.fillStyle = "rgba(238,242,255,0.92)";
           ctx.fillText(b.name, b.px, b.py + b.pr + 5);
         }
-      }
+      };
 
-      const sunP = project(0, 0, 0, rot, tilt, zoom, cx, cy);
-      const sunR = 22 * zoom * sunP.p;
-      const pulse = 0.88 + Math.sin(now * 0.0018) * 0.12;
-
-      // Corona esterna: bagliore ampio e morbido, respira lentamente.
-      const outer = ctx.createRadialGradient(
-        sunP.x,
-        sunP.y,
-        sunR * 0.3,
-        sunP.x,
-        sunP.y,
-        sunR * 5.2 * pulse,
-      );
-      outer.addColorStop(0, "rgba(103,232,249,0.55)");
-      outer.addColorStop(0.4, "rgba(34,211,238,0.28)");
-      outer.addColorStop(1, "rgba(34,211,238,0)");
-      ctx.fillStyle = outer;
-      ctx.beginPath();
-      ctx.arc(sunP.x, sunP.y, sunR * 5.2 * pulse, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Bagliore intenso ravvicinato: molto più acceso, cyan puro.
-      const sg = ctx.createRadialGradient(sunP.x, sunP.y, sunR * 0.15, sunP.x, sunP.y, sunR * 3.4);
-      sg.addColorStop(0, "rgba(255,255,255,0.98)");
-      sg.addColorStop(0.32, "rgba(165,243,252,0.9)");
-      sg.addColorStop(0.65, "rgba(34,211,238,0.55)");
-      sg.addColorStop(1, "rgba(34,211,238,0)");
-      ctx.fillStyle = sg;
-      ctx.beginPath();
-      ctx.arc(sunP.x, sunP.y, sunR * 3.4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Nucleo: bianco brillante al centro che sfuma in cyan saturo al bordo.
-      const core = ctx.createRadialGradient(
-        sunP.x - sunR * 0.25,
-        sunP.y - sunR * 0.28,
-        sunR * 0.05,
-        sunP.x,
-        sunP.y,
-        sunR,
-      );
-      core.addColorStop(0, "#ffffff");
-      core.addColorStop(0.45, "#e8fdff");
-      core.addColorStop(0.75, "#67e8f9");
-      core.addColorStop(1, "#0891b2");
-      ctx.fillStyle = core;
-      ctx.beginPath();
-      ctx.arc(sunP.x, sunP.y, sunR, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = "rgba(6,14,28,0.9)";
-      ctx.font = `700 ${Math.max(11, sunR * 0.42)}px Outfit, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(sim.totalLabel, sunP.x, sunP.y);
+      const sorted = [...sim.bodies].sort((a, b) => a.pz - b.pz);
+      const far = sorted.filter((b) => b.pz < 0);
+      const near = sorted.filter((b) => b.pz >= 0);
+      for (const b of far) drawBody(b);
+      drawSun();
+      for (const b of near) drawBody(b);
 
       raf = requestAnimationFrame(tick);
     };
