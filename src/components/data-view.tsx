@@ -35,7 +35,7 @@ export function DataView({
   const shownTotal = period === "year" ? yearly : monthly;
   const ranked = useMemo(() => {
     const rec = subscriptions
-      .filter((s) => s.status === "active" && s.frequency !== "once")
+      .filter((s) => s.status === "active")
       .map((s) => ({
         s,
         v: monthlyCost(s) * (period === "year" ? 12 : 1),
