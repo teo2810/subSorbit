@@ -478,21 +478,22 @@ export function OrbitCanvas({
       }
       for (const b of ringKeys.values()) {
         if (b.kind === "trash") continue;
-        const on = selected?.radius === b.radius && selected?.inc === b.inc;
+        const on = selected?.id === b.id || (selected && selected.radius === b.radius && selected.inc === b.inc);
+        const faded = Boolean(selected) && !on;
         drawRing(
           b.radius,
           b.inc,
           b.node,
-          on ? `${selected?.color ?? b.color}` : "rgba(170,220,255,0.28)",
-          on ? 1.7 : 0.9,
+          on ? `${selected?.color ?? b.color}` : faded ? "rgba(170,220,255,0.08)" : "rgba(170,220,255,0.28)",
+          on ? 2 : faded ? 0.6 : 0.9,
         );
       }
       drawRing(
         BAND.trash.radius,
         BAND.trash.inc,
         BAND.trash.node,
-        "rgba(210,200,180,0.42)",
-        1.25,
+        selected ? "rgba(210,200,180,0.12)" : "rgba(210,200,180,0.42)",
+        selected ? 0.7 : 1.25,
         [5, 9],
       );
 
@@ -500,7 +501,7 @@ export function OrbitCanvas({
         d.angle += 0.12 * spd * dt;
         const wpos = worldOf(sim.trashR + d.rJit, d.angle, BAND.trash.inc, BAND.trash.node);
         const p = project(wpos.x, wpos.y, wpos.z, rot, tilt, zoom, cx, cy);
-        ctx.fillStyle = `rgba(220,210,190,${Math.min(1, d.a * p.p + 0.15)})`;
+        ctx.fillStyle = `rgba(220,210,190,${Math.min(1, (d.a * p.p + 0.15) * (selected ? 0.25 : 1))})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, Math.max(0.8, d.size * p.p * zoom), 0, Math.PI * 2);
         ctx.fill();
@@ -581,11 +582,13 @@ export function OrbitCanvas({
       };
 
       const drawBody = (b: Body) => {
+        const focused = sim.focusId === b.id;
         const isFar = b.pz > 0;
         const distSun = Math.hypot(b.px - sunP.x, b.py - sunP.y);
-        if (isFar && distSun < sunR * 0.92) return;
+        if (!focused && isFar && distSun < sunR * 0.92) return;
         ctx.save();
-        if (isFar) ctx.globalAlpha = distSun < sunR * 1.7 ? 0.35 : 0.88;
+        if (sim.focusId && !focused) ctx.globalAlpha = 0.22;
+        else if (isFar) ctx.globalAlpha = distSun < sunR * 1.7 ? 0.35 : 0.88;
 
         if (b.paused) {
           for (let i = 0; i < 4; i++) {

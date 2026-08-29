@@ -169,66 +169,64 @@ function CategoryRing({
     return () => window.clearTimeout(t);
   }, [active, slices]);
 
-  const gap = 7;
+  const gap = 2;
   let offset = 0;
+  const stops: string[] = [];
+  let deg = 0;
+  const span = 270;
+  for (const s of slices) {
+    const sliceDeg = (s.value / total) * span * grow;
+    stops.push(`${s.color} ${deg}deg`);
+    deg += sliceDeg;
+    stops.push(`${s.color} ${deg}deg`);
+  }
+  if (deg < span) stops.push(`transparent ${deg}deg`, `transparent 360deg`);
+  else stops.push(`transparent ${span}deg`, `transparent 360deg`);
+
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} overflow="visible" aria-hidden>
-      <g transform={`rotate(135 ${cx} ${cx})`}>
-        <circle
-          cx={cx}
-          cy={cx}
-          r={r}
-          fill="none"
-          stroke="rgba(165,243,252,0.18)"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={`${track} ${c}`}
-        />
-        {slices.map((s) => {
-          const raw = (s.value / total) * track;
-          const len = Math.max(0, raw - gap) * grow;
-          const dashOff = -offset;
-          offset += raw;
-          const dim = Boolean(selected && selected !== s.id);
-          return (
-            <g key={s.id}>
-              {!dim && (
-                <circle
-                  cx={cx}
-                  cy={cx}
-                  r={r}
-                  fill="none"
-                  stroke={s.color}
-                  strokeWidth={stroke + 20}
-                  strokeLinecap="round"
-                  strokeDasharray={`${len} ${c}`}
-                  strokeDashoffset={dashOff}
-                  opacity={0.28}
-                />
-              )}
+    <div className="relative h-[236px] w-[236px]">
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `conic-gradient(from 135deg, ${stops.join(", ")})`,
+          WebkitMask:
+            "radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 15px), #000 calc(100% - 2px), transparent)",
+          mask:
+            "radial-gradient(farthest-side, transparent calc(100% - 16px), #000 calc(100% - 15px), #000 calc(100% - 2px), transparent)",
+          filter: "drop-shadow(0 0 8px rgba(255,255,255,0.16))",
+          opacity: selected ? 0.35 : 0.25 + 0.75 * grow,
+        }}
+      />
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} overflow="visible" aria-hidden>
+        <g transform={`rotate(135 ${cx} ${cx})`}>
+          {slices.map((s) => {
+            const raw = (s.value / total) * track;
+            const len = Math.max(0, raw - gap);
+            const dashOff = -offset;
+            offset += raw;
+            const dim = Boolean(selected && selected !== s.id);
+            const on = selected === s.id;
+            return (
               <circle
+                key={s.id}
                 cx={cx}
                 cy={cx}
                 r={r}
                 fill="none"
-                stroke={s.color}
-                strokeWidth={dim ? 8 : stroke + 2}
-                strokeLinecap="round"
+                stroke={on ? s.color : "transparent"}
+                strokeWidth={on ? stroke + 2 : stroke}
+                strokeLinecap="butt"
                 strokeDasharray={`${len} ${c}`}
                 strokeDashoffset={dashOff}
-                opacity={dim ? 0.22 : 1}
-                style={{
-                  cursor: "pointer",
-                  transition:
-                    "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms, stroke-width 200ms",
-                }}
+                opacity={dim ? 0 : on ? 1 : 0}
+                style={{ cursor: "pointer" }}
                 onClick={() => onSelect(selected === s.id ? null : s.id)}
               />
-            </g>
-          );
-        })}
-      </g>
-    </svg>
+            );
+          })}
+        </g>
+      </svg>
+    </div>
   );
 }
 

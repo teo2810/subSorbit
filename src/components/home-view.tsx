@@ -179,31 +179,12 @@ function SpendRing({ percent, active }: { percent: number; active: boolean }) {
           cy={cx}
           r={r}
           fill="none"
-          stroke="rgba(34,211,238,0.28)"
-          strokeWidth={stroke + 22}
-          strokeLinecap="round"
-          strokeDasharray={`${fill} ${c}`}
-        />
-        <circle
-          cx={cx}
-          cy={cx}
-          r={r}
-          fill="none"
-          stroke="rgba(165,243,252,0.5)"
-          strokeWidth={stroke + 8}
-          strokeLinecap="round"
-          strokeDasharray={`${fill} ${c}`}
-        />
-        <circle
-          cx={cx}
-          cy={cx}
-          r={r}
-          fill="none"
           stroke="var(--color-cyan)"
-          strokeWidth={stroke + 2}
+          strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={`${fill} ${c}`}
           style={{
+            filter: "drop-shadow(0 0 8px rgba(34,211,238,0.55))",
             transition: "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1)",
           }}
         />
