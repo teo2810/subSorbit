@@ -116,20 +116,24 @@ export function statusLabel(id: Status): string {
 }
 
 export function monthlyEquivalent(s: Subscription): number {
+  const price = Number(s.price);
+  if (!Number.isFinite(price)) return 0;
   switch (s.frequency) {
     case "monthly":
-      return s.price;
+      return price;
     case "yearly":
-      return s.price / 12;
+      return price / 12;
     case "weekly":
-      return (s.price * 52) / 12;
+      return (price * 52) / 12;
     case "once":
-      return s.price;
+      return price / 12;
+    default:
+      return price;
   }
 }
 
 export function monthlyCost(s: Subscription): number {
-  if (s.status !== "active" || s.frequency === "once") return 0;
+  if (s.status !== "active") return 0;
   return monthlyEquivalent(s);
 }
 
@@ -173,11 +177,14 @@ export function computePeriodSpend(
   let count = 0;
   for (const s of subs) {
     if (s.status !== "active") continue;
-    for (const d of occurrencesInRange(s, start, end)) {
-      due += s.price;
-      count += 1;
-      if (!isAfter(startOfDay(d), today)) paid += s.price;
-    }
+    const share = period === "year" ? monthlyCost(s) * 12 : monthlyCost(s);
+    if (share <= 0) continue;
+    due += share;
+    count += 1;
+    const billed = occurrencesInRange(s, start, end).some(
+      (d) => !isAfter(startOfDay(d), today),
+    );
+    if (billed) paid += share;
   }
   return {
     period,
@@ -193,15 +200,16 @@ export function computePeriodSpend(
 
 export function activePriceStats(subs: Subscription[]) {
   const active = subs.filter((s) => s.status === "active");
-  const recurring = active.filter((s) => s.frequency !== "once");
-  const prices = recurring.map((s) => s.price);
+  const prices = active.map((s) => monthlyEquivalent(s));
   const highest = prices.length ? Math.max(...prices) : 0;
   const lowest = prices.length ? Math.min(...prices) : 0;
+  const mid =
+    prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
   return {
     count: active.length,
     highest,
     lowest,
-    mid: prices.length ? (highest + lowest) / 2 : 0,
+    mid,
   };
 }
 
@@ -212,7 +220,7 @@ export function spendByCategory(
   const map = new Map<string, number>();
   const mul = period === "year" ? 12 : 1;
   for (const s of subs) {
-    if (s.status !== "active" || s.frequency === "once") continue;
+    if (s.status !== "active") continue;
     const id = s.category === "produttivita" ? "ufficio" : s.category;
     map.set(id, (map.get(id) ?? 0) + monthlyCost(s) * mul);
   }
