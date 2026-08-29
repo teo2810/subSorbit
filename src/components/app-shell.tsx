@@ -14,6 +14,8 @@ import { SettingsSheet } from "./settings-sheet";
 import { SubForm } from "./sub-form";
 import { WelcomeView } from "./welcome-view";
 import { cn } from "@/lib/cn";
+import { activeMonthlyTotal } from "@/lib/domain";
+import { formatEuroCompact } from "@/lib/format";
 import { preloadBrandIcons } from "@/lib/logos";
 import { useAppStore, type OrbitSpeed } from "@/lib/store";
 import type { StatusFilter, TabId } from "@/lib/types";
@@ -59,6 +61,7 @@ export function AppShell() {
     }
   }, []);
 
+  const monthly = activeMonthlyTotal(subscriptions);
   const detail = useMemo(
     () => subscriptions.find((s) => s.id === detailId) ?? null,
     [subscriptions, detailId],
@@ -166,7 +169,10 @@ export function AppShell() {
             </div>
             <header className="pointer-events-none absolute inset-x-0 top-0 z-20">
               <div className="pointer-events-auto mx-auto max-w-[720px]">
-                <ScreenHeader onSettings={openSettings} />
+                <ScreenHeader
+                  onSettings={openSettings}
+                  subtitle={`Spesa mensile ${formatEuroCompact(monthly)}/mese`}
+                />
                 <div className="px-5">
                   <FilterChips value={filter} onChange={setFilter} />
                 </div>

@@ -31,7 +31,7 @@ const RULES = [
   {
     icon: Compass,
     title: "Orbite concentriche",
-    text: "Stesso centro, piani leggermente inclinati: sembra un sistema reale, resta leggibile.",
+    text: "Quattro fasce fisse: settimanale, mensile, annuale/una tantum, spazzatura. Stesso centro, ogni fascia un po’ inclinata.",
   },
   {
     icon: Sparkles,

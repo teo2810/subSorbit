@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { BrandBadge, BrandWatermark } from "@/lib/logos";
+import { BrandBadge } from "@/lib/logos";
 import { cn } from "@/lib/cn";
 import {
   categoryLabel,
@@ -65,8 +65,11 @@ export function SubCard({
         sub.status !== "active" && "opacity-70",
       )}
     >
-      <span className="pointer-events-none absolute -right-3 -top-4 h-24 w-28 opacity-80">
-        <BrandWatermark brandKey={sub.brandKey} name={sub.name} />
+      <span
+        className="pointer-events-none absolute right-[-4%] top-[-40%] select-none font-display text-[42px] font-semibold leading-none text-white"
+        style={{ opacity: 0.1, filter: "blur(1.6px)" }}
+      >
+        {sub.name}
       </span>
       <BrandBadge brandKey={sub.brandKey} name={sub.name} size={44} />
       <span className="min-w-0 flex-1">

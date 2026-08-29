@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { activeMonthlyTotal, classify, monthlyEquivalent } from "@/lib/domain";
+import { activeMonthlyTotal, classify, monthlyEquivalent, orbitUrgency } from "@/lib/domain";
 import { formatEuroCompact } from "@/lib/format";
 import { drawBrand, getBrand, preloadBrandIcons } from "@/lib/logos";
 import type { StatusFilter, Subscription } from "@/lib/types";
@@ -18,6 +18,7 @@ interface Body {
   id: string;
   name: string;
   kind: ReturnType<typeof classify>;
+  paused: boolean;
   brandKey: string;
   color: string;
   radius: number;
@@ -97,46 +98,85 @@ function hash(n: number) {
   return x - Math.floor(x);
 }
 
-function buildBodies(subs: Subscription[], filter: StatusFilter): Body[] {
-  const total = activeMonthlyTotal(subs);
-  const shown = subs.filter((s) => visibleForFilter(s, filter));
-  const n = shown.length;
-  if (!n) return [];
+const BAND = {
+  weekly: { radius: 102, inc: 0.12, node: 0.08 },
+  monthly: { radius: 148, inc: 0.22, node: -0.16 },
+  yearly: { radius: 194, inc: 0.16, node: 0.26 },
+  trash: { radius: 246, inc: 0.14, node: 0.2 },
+} as const;
 
-  const ranked = [...shown].sort(
-    (a, b) => monthlyEquivalent(b) - monthlyEquivalent(a),
-  );
+function sizeStep(share: number) {
+  if (share >= 0.18) return 22;
+  if (share >= 0.08) return 16;
+  return 11;
+}
 
-  const ringCount = Math.min(6, Math.max(3, Math.ceil(n / 5)));
-  const innerMin = 92;
-  const innerMax = 210;
-  const gap = ringCount === 1 ? 0 : (innerMax - innerMin) / (ringCount - 1);
-  const perRing = Math.ceil(n / ringCount);
+function speedStep(s: Subscription) {
+  if (s.status === "cancelled") return 0.014;
+  const u = orbitUrgency(s);
+  if (u >= 0.66) return 0.05;
+  if (u >= 0.33) return 0.032;
+  return 0.018;
+}
 
-  return ranked.map((s, i) => {
-    const ring = Math.min(ringCount - 1, Math.floor(i / perRing));
-    const slot = i - ring * perRing;
-    const onThis = Math.min(perRing, n - ring * perRing);
-    const radius = innerMin + ring * gap;
-    const angle = (slot / Math.max(onThis, 1)) * Math.PI * 2 + ring * 0.35;
+function bandOf(s: Subscription, total: number) {
+  if (classify(s, total) === "trash") return "trash" as const;
+  if (s.frequency === "weekly") return "weekly" as const;
+  if (s.frequency === "yearly" || s.frequency === "once") return "yearly" as const;
+  return "monthly" as const;
+}
+
+function placeOnBands(items: Subscription[], key: keyof typeof BAND, total: number): Body[] {
+  if (!items.length) return [];
+  const base = BAND[key];
+  const cap = 6;
+  const rings = Math.ceil(items.length / cap);
+  return items.map((s, i) => {
+    const ring = Math.floor(i / cap);
+    const slot = i - ring * cap;
+    const onRing = Math.min(cap, items.length - ring * cap);
+    const share = total > 0 ? monthlyEquivalent(s) / Math.max(total, 0.01) : 0.08;
+    const size = key === "trash" ? 12 : sizeStep(share);
     return {
       id: s.id,
       name: s.name,
       kind: classify(s, total),
+      paused: s.status === "paused",
       brandKey: s.brandKey,
       color: getBrand(s.brandKey).color,
-      radius,
-      angle,
-      size: 15,
-      inc: (hash(ring + 3) - 0.5) * 0.38,
-      node: (hash(ring + 17) - 0.5) * 0.55,
-      omega: 0.026 + ring * 0.008 + hash(i + 8) * 0.01,
+      radius: base.radius + ring * 18,
+      angle: (slot / Math.max(onRing, 1)) * Math.PI * 2 + ring * 0.4 + hash(i + 2),
+      size,
+      inc: base.inc,
+      node: base.node,
+      omega: speedStep(s),
       px: 0,
       py: 0,
       pz: 0,
-      pr: 15,
+      pr: size,
     };
   });
+}
+
+function buildBodies(subs: Subscription[], filter: StatusFilter): Body[] {
+  const total = activeMonthlyTotal(subs);
+  const shown = subs.filter((s) => visibleForFilter(s, filter));
+  const groups = {
+    weekly: [] as Subscription[],
+    monthly: [] as Subscription[],
+    yearly: [] as Subscription[],
+    trash: [] as Subscription[],
+  };
+  for (const s of shown) groups[bandOf(s, total)].push(s);
+  for (const k of Object.keys(groups) as (keyof typeof groups)[]) {
+    groups[k].sort((a, b) => monthlyEquivalent(b) - monthlyEquivalent(a));
+  }
+  return [
+    ...placeOnBands(groups.weekly, "weekly", total),
+    ...placeOnBands(groups.monthly, "monthly", total),
+    ...placeOnBands(groups.yearly, "yearly", total),
+    ...placeOnBands(groups.trash, "trash", total),
+  ];
 }
 
 export function trashRadius(bodies: Body[]) {
@@ -447,13 +487,32 @@ export function OrbitCanvas({
       };
 
       const selected = sim.bodies.find((b) => b.id === sim.focusId);
-      const rings = new Map<number, { inc: number; node: number }>();
+      const ringKeys = new Map<string, Body>();
       for (const b of sim.bodies) {
-        if (!rings.has(b.radius)) rings.set(b.radius, { inc: b.inc, node: b.node });
+        const k = `${b.radius.toFixed(1)}:${b.inc}:${b.node}`;
+        if (!ringKeys.has(k)) ringKeys.set(k, b);
       }
-      for (const [radius, o] of rings) {
-        const on = selected?.radius === radius;
-        drawRing(radius, o.inc, o.node, "rgba(180,220,255,0.34)", on ? 1.4 : 0.85);
+      for (const b of ringKeys.values()) {
+        const on = selected?.radius === b.radius && selected?.inc === b.inc;
+        const trash = b.kind === "trash";
+        drawRing(
+          b.radius,
+          b.inc,
+          b.node,
+          on ? `${selected?.color ?? b.color}` : trash ? "rgba(180,170,150,0.36)" : "rgba(170,220,255,0.28)",
+          on ? 1.7 : trash ? 1.1 : 0.9,
+          trash ? [4, 8] : undefined,
+        );
+      }
+
+      for (const d of sim.debris) {
+        d.angle += 0.1 * spd * dt;
+        const wpos = worldOf(sim.trashR + d.rJit, d.angle, 0.16, 0.35);
+        const p = project(wpos.x, wpos.y, wpos.z, rot, tilt, zoom, cx, cy);
+        ctx.fillStyle = `rgba(200,190,170,${d.a * p.p})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, d.size * p.p * zoom, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       for (const b of sim.bodies) {
@@ -516,6 +575,24 @@ export function OrbitCanvas({
         const isFar = b.pz < 0;
         ctx.save();
         if (isFar) ctx.globalAlpha = 0.7;
+
+        if (b.paused) {
+          const cloud = ctx.createRadialGradient(
+            b.px,
+            b.py,
+            b.pr * 0.4,
+            b.px,
+            b.py,
+            b.pr * 2.2,
+          );
+          cloud.addColorStop(0, "rgba(120,130,160,0.28)");
+          cloud.addColorStop(0.55, "rgba(90,100,130,0.16)");
+          cloud.addColorStop(1, "rgba(90,100,130,0)");
+          ctx.fillStyle = cloud;
+          ctx.beginPath();
+          ctx.arc(b.px, b.py, b.pr * 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
         if (sim.focusId === b.id) {
           const halo = ctx.createRadialGradient(

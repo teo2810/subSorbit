@@ -133,9 +133,14 @@ export function ScreenHeader({
       <div className="relative flex items-center justify-between px-5 pt-5 pb-2">
         <div className="flex min-w-0 items-center gap-2">
           <OrbitSun size={26} pulse />
-          <h1 className="leading-none">
-            <OrbitMark size="sm" />
-          </h1>
+          <div className="min-w-0">
+            <h1 className="leading-none">
+              <OrbitMark size="sm" />
+            </h1>
+            {subtitle ? (
+              <p className="mt-1 truncate text-[11px] text-muted">{subtitle}</p>
+            ) : null}
+          </div>
         </div>
         <button
           type="button"
