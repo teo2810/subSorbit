@@ -169,52 +169,97 @@ function CategoryRing({
     return () => window.clearTimeout(t);
   }, [active, slices]);
 
-  const gap = 10;
+  const span = 270;
+  const stops: string[] = [];
+  let deg = 0;
+  for (const s of slices) {
+    const slice = (s.value / total) * span;
+    const color = selected && selected !== s.id ? `${s.color}44` : s.color;
+    stops.push(`${color} ${deg}deg`);
+    deg += slice;
+    stops.push(`${color} ${deg}deg`);
+  }
+  stops.push(`transparent ${span}deg`, `transparent 360deg`);
+  const conic = `conic-gradient(from 225deg, ${stops.join(", ")})`;
+  const ringMask =
+    "radial-gradient(farthest-side, transparent calc(100% - 15px), #000 calc(100% - 14px), #000 calc(100% - 1px), transparent)";
   let offset = 0;
+  const first = slices[0];
+  const last = slices[slices.length - 1];
+  const cap = (cssDeg: number, color: string) => {
+    const rad = (cssDeg * Math.PI) / 180;
+    return {
+      left: `${50 + Math.sin(rad) * ((r / size) * 100)}%`,
+      top: `${50 - Math.cos(rad) * ((r / size) * 100)}%`,
+      background: color,
+      boxShadow: `0 0 10px ${color}`,
+    };
+  };
+
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} overflow="visible" aria-hidden>
-      <g transform={`rotate(135 ${cx} ${cx})`}>
-        <circle
-          cx={cx}
-          cy={cx}
-          r={r}
-          fill="none"
-          stroke="rgba(165,243,252,0.14)"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={`${track} ${c}`}
+    <div className="relative h-[236px] w-[236px]" style={{ opacity: 0.2 + 0.8 * grow }}>
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: conic,
+          WebkitMask: ringMask,
+          mask: ringMask,
+          filter: "blur(14px)",
+          opacity: 0.75,
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: conic,
+          WebkitMask: ringMask,
+          mask: ringMask,
+        }}
+      />
+      {first ? (
+        <span
+          className="pointer-events-none absolute size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={cap(225, selected && selected !== first.id ? `${first.color}44` : first.color)}
         />
-        {slices.map((s) => {
-          const raw = (s.value / total) * track;
-          const len = Math.max(0, raw - gap) * grow;
-          const dashOff = -offset;
-          offset += raw;
-          const dim = Boolean(selected && selected !== s.id);
-          return (
-            <circle
-              key={s.id}
-              cx={cx}
-              cy={cx}
-              r={r}
-              fill="none"
-              stroke={s.color}
-              strokeWidth={dim ? 8 : stroke}
-              strokeLinecap="round"
-              strokeDasharray={`${len} ${c}`}
-              strokeDashoffset={dashOff}
-              opacity={dim ? 0.2 : 1}
-              style={{
-                cursor: "pointer",
-                filter: dim ? "none" : `drop-shadow(0 0 7px ${s.color}66)`,
-                transition:
-                  "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms, stroke-width 200ms",
-              }}
-              onClick={() => onSelect(selected === s.id ? null : s.id)}
-            />
-          );
-        })}
-      </g>
-    </svg>
+      ) : null}
+      {last ? (
+        <span
+          className="pointer-events-none absolute size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={cap(135, selected && selected !== last.id ? `${last.color}44` : last.color)}
+        />
+      ) : null}
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        className="absolute inset-0"
+        aria-hidden
+      >
+        <g transform={`rotate(135 ${cx} ${cx})`}>
+          {slices.map((s) => {
+            const raw = (s.value / total) * track;
+            const len = Math.max(0.01, raw);
+            const dashOff = -offset;
+            offset += raw;
+            return (
+              <circle
+                key={s.id}
+                cx={cx}
+                cy={cx}
+                r={r}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={stroke + 10}
+                strokeDasharray={`${len} ${c}`}
+                strokeDashoffset={dashOff}
+                style={{ cursor: "pointer" }}
+                onClick={() => onSelect(selected === s.id ? null : s.id)}
+              />
+            );
+          })}
+        </g>
+      </svg>
+    </div>
   );
 }
 
