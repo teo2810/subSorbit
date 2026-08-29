@@ -196,30 +196,35 @@ function CategoryRing({
     ctx.arc(cx, cx, r, start, start + full);
     ctx.stroke();
 
+    const firstCol = slices[0] ? (selected && selected !== slices[0].id ? fade(slices[0].color, 0.28) : slices[0].color) : "#22d3ee";
     const grad = ctx.createConicGradient(start, cx, cx);
     let t = 0;
-    slices.forEach((s, i) => {
+    grad.addColorStop(0, firstCol);
+    slices.forEach((s) => {
       const share = (s.value / total) * 0.75;
       const col = selected && selected !== s.id ? fade(s.color, 0.28) : s.color;
-      if (i === 0) grad.addColorStop(0, col);
       t += share;
       grad.addColorStop(Math.min(0.75, t), col);
     });
+    grad.addColorStop(0.7501, firstCol);
+    grad.addColorStop(1, firstCol);
 
-    const paint = (width: number, alpha: number) => {
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.lineWidth = width;
-      ctx.lineCap = "round";
-      ctx.strokeStyle = grad;
-      ctx.beginPath();
-      ctx.arc(cx, cx, r, start, start + sweep);
-      ctx.stroke();
-      ctx.restore();
-    };
-
-    paint(22, 0.28);
-    paint(stroke, 1);
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.strokeStyle = grad;
+    ctx.filter = "blur(10px)";
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = stroke + 2;
+    ctx.beginPath();
+    ctx.arc(cx, cx, r, start, start + sweep);
+    ctx.stroke();
+    ctx.filter = "none";
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = stroke;
+    ctx.beginPath();
+    ctx.arc(cx, cx, r, start, start + sweep);
+    ctx.stroke();
+    ctx.restore();
   }, [slices, selected, grow, total]);
 
   const hit = (e: React.MouseEvent<HTMLCanvasElement>) => {

@@ -184,7 +184,8 @@ function SpendRing({ percent, active }: { percent: number; active: boolean }) {
           strokeLinecap="round"
           strokeDasharray={`${fill} ${c}`}
           style={{
-            filter: "drop-shadow(0 0 8px rgba(34,211,238,0.55))",
+            filter:
+              "drop-shadow(0 0 4px rgba(165,243,252,0.95)) drop-shadow(0 0 14px rgba(34,211,238,0.7)) drop-shadow(0 0 28px rgba(34,211,238,0.35))",
             transition: "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1)",
           }}
         />

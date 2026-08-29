@@ -526,52 +526,38 @@ export function OrbitCanvas({
         const bloom = ctx.createRadialGradient(
           sunP.x,
           sunP.y,
-          sunR * 0.15,
+          0,
           sunP.x,
           sunP.y,
-          sunR * 7.2 * pulse,
+          sunR * 6.2 * pulse,
         );
-        bloom.addColorStop(0, "rgba(255,255,255,0.95)");
-        bloom.addColorStop(0.12, "rgba(186,247,255,0.85)");
-        bloom.addColorStop(0.32, "rgba(34,211,238,0.42)");
-        bloom.addColorStop(0.58, "rgba(14,165,233,0.16)");
+        bloom.addColorStop(0, "rgba(255,255,255,1)");
+        bloom.addColorStop(0.08, "rgba(186,247,255,0.95)");
+        bloom.addColorStop(0.18, "rgba(34,211,238,0.7)");
+        bloom.addColorStop(0.34, "rgba(34,211,238,0.28)");
+        bloom.addColorStop(0.55, "rgba(14,165,233,0.1)");
         bloom.addColorStop(1, "rgba(14,165,233,0)");
         ctx.fillStyle = bloom;
         ctx.beginPath();
-        ctx.arc(sunP.x, sunP.y, sunR * 7.2 * pulse, 0, Math.PI * 2);
-        ctx.fill();
-
-        const mid = ctx.createRadialGradient(
-          sunP.x,
-          sunP.y,
-          sunR * 0.2,
-          sunP.x,
-          sunP.y,
-          sunR * 1.85,
-        );
-        mid.addColorStop(0, "rgba(255,255,255,1)");
-        mid.addColorStop(0.45, "rgba(165,243,252,0.95)");
-        mid.addColorStop(1, "rgba(34,211,238,0)");
-        ctx.fillStyle = mid;
-        ctx.beginPath();
-        ctx.arc(sunP.x, sunP.y, sunR * 1.85, 0, Math.PI * 2);
+        ctx.arc(sunP.x, sunP.y, sunR * 6.2 * pulse, 0, Math.PI * 2);
         ctx.fill();
 
         const core = ctx.createRadialGradient(
-          sunP.x - sunR * 0.18,
-          sunP.y - sunR * 0.2,
-          sunR * 0.04,
+          sunP.x - sunR * 0.16,
+          sunP.y - sunR * 0.18,
+          sunR * 0.05,
           sunP.x,
           sunP.y,
-          sunR,
+          sunR * 1.15,
         );
         core.addColorStop(0, "#ffffff");
-        core.addColorStop(0.35, "#e6fcff");
-        core.addColorStop(0.7, "#7dd3fc");
-        core.addColorStop(1, "#22d3ee");
+        core.addColorStop(0.28, "#e6fcff");
+        core.addColorStop(0.58, "#7dd3fc");
+        core.addColorStop(0.82, "rgba(34,211,238,0.55)");
+        core.addColorStop(1, "rgba(34,211,238,0)");
         ctx.fillStyle = core;
         ctx.beginPath();
-        ctx.arc(sunP.x, sunP.y, sunR, 0, Math.PI * 2);
+        ctx.arc(sunP.x, sunP.y, sunR * 1.15, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.fillStyle = "rgba(8,20,40,0.78)";
