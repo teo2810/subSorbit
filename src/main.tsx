@@ -10,7 +10,7 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <div className="cosmic-bg min-h-dvh">
+    <div className="cosmic-bg h-full w-full overflow-hidden">
       <AppShell />
     </div>
   </StrictMode>,
