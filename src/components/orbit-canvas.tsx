@@ -241,7 +241,7 @@ export function OrbitCanvas({
     const sim = simRef.current;
     sim.bodies = buildBodies(subscriptions, filter);
     sim.totalLabel = formatEuroCompact(activeMonthlyTotal(subscriptions));
-    sim.trashR = trashRadius(sim.bodies);
+    sim.trashR = BAND.trash.radius;
   }, [subscriptions, filter]);
 
   useEffect(() => {
@@ -281,11 +281,11 @@ export function OrbitCanvas({
         a: 0.18 + hash(i + 21) * 0.62,
         tw: hash(i + 33) * Math.PI * 2,
       }));
-      sim.debris = Array.from({ length: 36 }, (_, i) => ({
+      sim.debris = Array.from({ length: 72 }, (_, i) => ({
         angle: hash(i + 70) * Math.PI * 2,
-        rJit: (hash(i + 90) - 0.5) * 22,
-        size: 0.7 + hash(i + 50) * 2.4,
-        a: 0.16 + hash(i + 12) * 0.4,
+        rJit: (hash(i + 90) - 0.5) * 16,
+        size: 1.1 + hash(i + 50) * 3.2,
+        a: 0.35 + hash(i + 12) * 0.5,
       }));
     };
 
@@ -469,25 +469,32 @@ export function OrbitCanvas({
         if (!ringKeys.has(k)) ringKeys.set(k, b);
       }
       for (const b of ringKeys.values()) {
+        if (b.kind === "trash") continue;
         const on = selected?.radius === b.radius && selected?.inc === b.inc;
-        const trash = b.kind === "trash";
         drawRing(
           b.radius,
           b.inc,
           b.node,
-          on ? `${selected?.color ?? b.color}` : trash ? "rgba(180,170,150,0.36)" : "rgba(170,220,255,0.28)",
-          on ? 1.7 : trash ? 1.1 : 0.9,
-          trash ? [4, 8] : undefined,
+          on ? `${selected?.color ?? b.color}` : "rgba(170,220,255,0.28)",
+          on ? 1.7 : 0.9,
         );
       }
+      drawRing(
+        BAND.trash.radius,
+        BAND.trash.inc,
+        BAND.trash.node,
+        "rgba(210,200,180,0.42)",
+        1.25,
+        [5, 9],
+      );
 
       for (const d of sim.debris) {
-        d.angle += 0.1 * spd * dt;
-        const wpos = worldOf(sim.trashR + d.rJit, d.angle, 0.16, 0.35);
+        d.angle += 0.12 * spd * dt;
+        const wpos = worldOf(sim.trashR + d.rJit, d.angle, BAND.trash.inc, BAND.trash.node);
         const p = project(wpos.x, wpos.y, wpos.z, rot, tilt, zoom, cx, cy);
-        ctx.fillStyle = `rgba(200,190,170,${d.a * p.p})`;
+        ctx.fillStyle = `rgba(220,210,190,${Math.min(1, d.a * p.p + 0.15)})`;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, d.size * p.p * zoom, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, Math.max(0.8, d.size * p.p * zoom), 0, Math.PI * 2);
         ctx.fill();
       }
 
@@ -503,45 +510,62 @@ export function OrbitCanvas({
 
       const drawSun = () => {
         const sunP = project(0, 0, 0, rot, tilt, zoom, cx, cy);
-        const sunR = 22 * zoom * sunP.p;
-        const pulse = 0.9 + Math.sin(now * 0.002) * 0.1;
+        const sunR = 38 * zoom * sunP.p;
+        const pulse = 0.94 + Math.sin(now * 0.0016) * 0.06;
 
-        const outer = ctx.createRadialGradient(
+        const bloom = ctx.createRadialGradient(
           sunP.x,
           sunP.y,
-          sunR * 0.25,
+          sunR * 0.15,
           sunP.x,
           sunP.y,
-          sunR * 4.4 * pulse,
+          sunR * 7.2 * pulse,
         );
-        outer.addColorStop(0, "rgba(165,243,252,0.85)");
-        outer.addColorStop(0.28, "rgba(34,211,238,0.45)");
-        outer.addColorStop(0.62, "rgba(34,211,238,0.14)");
-        outer.addColorStop(1, "rgba(34,211,238,0)");
-        ctx.fillStyle = outer;
+        bloom.addColorStop(0, "rgba(255,255,255,0.95)");
+        bloom.addColorStop(0.12, "rgba(186,247,255,0.85)");
+        bloom.addColorStop(0.32, "rgba(34,211,238,0.42)");
+        bloom.addColorStop(0.58, "rgba(14,165,233,0.16)");
+        bloom.addColorStop(1, "rgba(14,165,233,0)");
+        ctx.fillStyle = bloom;
         ctx.beginPath();
-        ctx.arc(sunP.x, sunP.y, sunR * 4.4 * pulse, 0, Math.PI * 2);
+        ctx.arc(sunP.x, sunP.y, sunR * 7.2 * pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        const mid = ctx.createRadialGradient(
+          sunP.x,
+          sunP.y,
+          sunR * 0.2,
+          sunP.x,
+          sunP.y,
+          sunR * 1.85,
+        );
+        mid.addColorStop(0, "rgba(255,255,255,1)");
+        mid.addColorStop(0.45, "rgba(165,243,252,0.95)");
+        mid.addColorStop(1, "rgba(34,211,238,0)");
+        ctx.fillStyle = mid;
+        ctx.beginPath();
+        ctx.arc(sunP.x, sunP.y, sunR * 1.85, 0, Math.PI * 2);
         ctx.fill();
 
         const core = ctx.createRadialGradient(
-          sunP.x - sunR * 0.22,
-          sunP.y - sunR * 0.24,
-          sunR * 0.05,
+          sunP.x - sunR * 0.18,
+          sunP.y - sunR * 0.2,
+          sunR * 0.04,
           sunP.x,
           sunP.y,
           sunR,
         );
         core.addColorStop(0, "#ffffff");
-        core.addColorStop(0.38, "#a5f3fc");
-        core.addColorStop(0.72, "#22d3ee");
-        core.addColorStop(1, "#06b6d4");
+        core.addColorStop(0.35, "#e6fcff");
+        core.addColorStop(0.7, "#7dd3fc");
+        core.addColorStop(1, "#22d3ee");
         ctx.fillStyle = core;
         ctx.beginPath();
         ctx.arc(sunP.x, sunP.y, sunR, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = "rgba(6,14,28,0.88)";
-        ctx.font = `700 ${Math.max(11, sunR * 0.42)}px Outfit, sans-serif`;
+        ctx.fillStyle = "rgba(8,20,40,0.78)";
+        ctx.font = `700 ${Math.max(12, sunR * 0.34)}px Outfit, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(sim.totalLabel, sunP.x, sunP.y);
@@ -553,21 +577,26 @@ export function OrbitCanvas({
         if (isFar) ctx.globalAlpha = 0.92;
 
         if (b.paused) {
-          const cloud = ctx.createRadialGradient(
-            b.px,
-            b.py,
-            b.pr * 0.4,
-            b.px,
-            b.py,
-            b.pr * 2.2,
-          );
-          cloud.addColorStop(0, "rgba(120,130,160,0.28)");
-          cloud.addColorStop(0.55, "rgba(90,100,130,0.16)");
-          cloud.addColorStop(1, "rgba(90,100,130,0)");
-          ctx.fillStyle = cloud;
-          ctx.beginPath();
-          ctx.arc(b.px, b.py, b.pr * 2.2, 0, Math.PI * 2);
-          ctx.fill();
+          for (let i = 0; i < 4; i++) {
+            const ang = now * 0.0004 + i * 1.6;
+            const ox = Math.cos(ang) * b.pr * 0.55;
+            const oy = Math.sin(ang * 0.8) * b.pr * 0.35;
+            const cloud = ctx.createRadialGradient(
+              b.px + ox,
+              b.py + oy,
+              b.pr * 0.2,
+              b.px + ox,
+              b.py + oy,
+              b.pr * 1.7,
+            );
+            cloud.addColorStop(0, "rgba(150,158,180,0.38)");
+            cloud.addColorStop(0.55, "rgba(90,98,125,0.2)");
+            cloud.addColorStop(1, "rgba(90,98,125,0)");
+            ctx.fillStyle = cloud;
+            ctx.beginPath();
+            ctx.arc(b.px + ox, b.py + oy, b.pr * 1.7, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
 
         if (sim.focusId === b.id) {
