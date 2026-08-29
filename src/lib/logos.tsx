@@ -418,8 +418,9 @@ export function BrandWatermark({
             width: "100%",
             height: "100%",
             objectFit: "contain",
-            filter: "blur(1.2px)",
-            opacity: 0.22,
+            filter: "blur(5px)",
+            opacity: 0.2,
+            transform: "scale(1.15)",
           }}
         />
       ) : (

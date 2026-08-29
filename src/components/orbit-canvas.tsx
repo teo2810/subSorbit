@@ -99,16 +99,16 @@ function hash(n: number) {
 }
 
 const BAND = {
-  weekly: { radius: 102, inc: 0.12, node: 0.08 },
-  monthly: { radius: 148, inc: 0.22, node: -0.16 },
-  yearly: { radius: 194, inc: 0.16, node: 0.26 },
-  trash: { radius: 246, inc: 0.14, node: 0.2 },
+  weekly: { radius: 88, inc: 0.11, node: 0.08 },
+  monthly: { radius: 168, inc: 0.2, node: -0.14 },
+  yearly: { radius: 248, inc: 0.15, node: 0.24 },
+  trash: { radius: 328, inc: 0.13, node: 0.18 },
 } as const;
 
 function sizeStep(share: number) {
-  if (share >= 0.18) return 22;
-  if (share >= 0.08) return 16;
-  return 11;
+  if (share >= 0.18) return 18;
+  if (share >= 0.08) return 14;
+  return 10;
 }
 
 function speedStep(s: Subscription) {
@@ -129,7 +129,7 @@ function bandOf(s: Subscription, total: number) {
 function placeOnBands(items: Subscription[], key: keyof typeof BAND, total: number): Body[] {
   if (!items.length) return [];
   const base = BAND[key];
-  const cap = 6;
+  const cap = 5;
   const rings = Math.ceil(items.length / cap);
   return items.map((s, i) => {
     const ring = Math.floor(i / cap);
@@ -144,7 +144,7 @@ function placeOnBands(items: Subscription[], key: keyof typeof BAND, total: numb
       paused: s.status === "paused",
       brandKey: s.brandKey,
       color: getBrand(s.brandKey).color,
-      radius: base.radius + ring * 18,
+      radius: base.radius + ring * 28,
       angle: (slot / Math.max(onRing, 1)) * Math.PI * 2 + ring * 0.4 + hash(i + 2),
       size,
       inc: base.inc,
@@ -422,7 +422,7 @@ export function OrbitCanvas({
       const h = sim.h;
       const cx = w * 0.5;
       const cy = h * sim.cyFactor;
-      const fit = Math.min(w / 560, h / 560);
+      const fit = Math.min(w / 720, h / 720);
       const zoom = sim.zoom * fit;
       const rot = sim.rot;
       const tilt = sim.tilt;

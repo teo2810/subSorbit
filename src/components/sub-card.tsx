@@ -20,13 +20,6 @@ export function SubCard({
   onQuickFocus?: () => void;
 }) {
   const timer = useRef<number | null>(null);
-  const border =
-    sub.status === "active"
-      ? "border-l-ok"
-      : sub.status === "paused"
-        ? "border-l-warn"
-        : "border-l-bad";
-
   const next = nextOccurrence(sub.nextRenewal, sub.frequency);
   const badge =
     sub.status === "active"
@@ -60,18 +53,17 @@ export function SubCard({
       onPointerCancel={endPress}
       onContextMenu={(e) => e.preventDefault()}
       className={cn(
-        "glass-soft glow-tap relative flex w-full items-center gap-3 overflow-hidden rounded-lg border-l-[3px] py-3 pr-3 pl-3 text-left",
-        border,
+        "glow-tap relative flex w-full items-center gap-3 overflow-hidden rounded-2xl bg-[#12182c] py-3 pr-3 pl-3 text-left shadow-[0_0_0_1px_rgba(255,255,255,0.06)]",
         sub.status !== "active" && "opacity-70",
       )}
     >
       <span
-        className="pointer-events-none absolute right-[-4%] top-[-40%] select-none font-display text-[42px] font-semibold leading-none text-white"
-        style={{ opacity: 0.1, filter: "blur(1.6px)" }}
+        className="pointer-events-none absolute right-1 top-1/2 max-w-[62%] -translate-y-1/2 truncate text-right font-display text-[34px] font-semibold leading-none text-white"
+        style={{ opacity: 0.07, filter: "blur(1.4px)" }}
       >
         {sub.name}
       </span>
-      <BrandBadge brandKey={sub.brandKey} name={sub.name} size={44} />
+      <BrandBadge brandKey={sub.brandKey} name={sub.name} size={42} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="truncate font-display text-sm font-semibold">

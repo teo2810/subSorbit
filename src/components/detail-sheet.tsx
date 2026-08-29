@@ -105,16 +105,8 @@ export function DetailSheet({
         }}
       >
         <div className="relative shrink-0 px-4 pt-4">
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-[68%] overflow-hidden">
-            <span
-              className="absolute right-[-8%] top-[-18%] select-none font-display text-[72px] font-semibold leading-none tracking-tight text-white"
-              style={{ opacity: 0.14, filter: "blur(2px)" }}
-            >
-              {sub.name}
-            </span>
-            <div className="absolute right-2 top-[-10%] h-36 w-36 opacity-50">
-              <BrandWatermark brandKey={sub.brandKey} name={sub.name} />
-            </div>
+          <div className="pointer-events-none absolute -right-6 -top-8 h-48 w-64 overflow-hidden">
+            <BrandWatermark brandKey={sub.brandKey} name={sub.name} />
           </div>
           <div className="relative mb-3 flex items-start gap-2">
             <div className="min-w-0 flex-1 pr-8">
