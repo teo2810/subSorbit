@@ -46,7 +46,16 @@ export function AppShell() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [flash, setFlash] = useState(false);
-  const swipe = useRef({ x: 0, y: 0, on: false });
+  const pageRef = useRef<HTMLDivElement>(null);
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
+  const blockRef = useRef({ form: false, settings: false, guide: false, detail: false });
+  blockRef.current = {
+    form: formOpen,
+    settings: settingsOpen,
+    guide: guideOpen,
+    detail: Boolean(detailId),
+  };
 
   useEffect(() => {
     preloadBrandIcons();
@@ -91,23 +100,68 @@ export function AppShell() {
     setFocusId(id);
   };
 
-  const onSwipeStart = (e: React.PointerEvent) => {
-    if (formOpen || settingsOpen || guideOpen || detailId) return;
-    const x = e.clientX;
-    const edge = x < 32 || x > window.innerWidth - 32;
-    if (tab === "orbit" && !edge) return;
-    swipe.current = { x, y: e.clientY, on: true };
-  };
-  const onSwipeEnd = (e: React.PointerEvent) => {
-    if (!swipe.current.on) return;
-    swipe.current.on = false;
-    const dx = e.clientX - swipe.current.x;
-    const dy = e.clientY - swipe.current.y;
-    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
-    const i = TAB_ORDER.indexOf(tab);
-    if (dx < 0 && i < TAB_ORDER.length - 1) goTab(TAB_ORDER[i + 1]!);
-    if (dx > 0 && i > 0) goTab(TAB_ORDER[i - 1]!);
-  };
+  useEffect(() => {
+    const el = pageRef.current;
+    if (!el) return;
+    const st = { x: 0, y: 0, on: false, horiz: false, period: false };
+    const onStart = (e: TouchEvent) => {
+      const b = blockRef.current;
+      if (b.form || b.settings || b.guide || b.detail) return;
+      const t = e.changedTouches[0];
+      if (!t) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input,textarea,select,[data-no-swipe]")) return;
+      const tabNow = tabRef.current;
+      if (tabNow === "orbit" && !target?.closest("[data-period-swipe]")) {
+        const x = t.clientX;
+        if (x > 36 && x < window.innerWidth - 36) return;
+      }
+      st.x = t.clientX;
+      st.y = t.clientY;
+      st.on = true;
+      st.horiz = false;
+      st.period = Boolean(target?.closest("[data-period-swipe]"));
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!st.on) return;
+      const t = e.changedTouches[0] ?? e.touches[0];
+      if (!t) return;
+      const dx = t.clientX - st.x;
+      const dy = t.clientY - st.y;
+      if (!st.horiz && Math.abs(dx) + Math.abs(dy) > 10) {
+        st.horiz = Math.abs(dx) > Math.abs(dy) * 1.15;
+        if (!st.horiz) st.on = false;
+      }
+      if (st.horiz) e.preventDefault();
+    };
+    const onEnd = (e: TouchEvent) => {
+      if (!st.on) return;
+      st.on = false;
+      const t = e.changedTouches[0];
+      if (!t) return;
+      const dx = t.clientX - st.x;
+      const dy = t.clientY - st.y;
+      if (!st.horiz || Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+      if (st.period && (tabRef.current === "home" || tabRef.current === "data")) {
+        window.dispatchEvent(new CustomEvent("orbit-flip-period"));
+        return;
+      }
+      const i = TAB_ORDER.indexOf(tabRef.current);
+      if (dx < 0 && i < TAB_ORDER.length - 1) goTab(TAB_ORDER[i + 1]!);
+      if (dx > 0 && i > 0) goTab(TAB_ORDER[i - 1]!);
+    };
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd);
+    el.addEventListener("touchcancel", () => {
+      st.on = false;
+    });
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+    };
+  }, [welcomeOpen]);
 
   if (welcomeOpen) {
     return (
@@ -126,15 +180,11 @@ export function AppShell() {
   const openSettings = () => setSettingsOpen(true);
 
   return (
-    <div className="relative mx-auto flex h-full w-full max-w-full flex-col overflow-hidden text-fg overscroll-none">
-      <div
-        className="relative min-h-0 flex-1 overflow-hidden"
-        onPointerDown={onSwipeStart}
-        onPointerUp={onSwipeEnd}
-        onPointerCancel={() => {
-          swipe.current.on = false;
-        }}
-      >
+    <div
+      ref={pageRef}
+      className="relative mx-auto flex h-full w-full max-w-full flex-col overflow-hidden text-fg overscroll-none"
+    >
+      <div className="relative min-h-0 flex-1 overflow-hidden">
         <div className="relative h-full w-full overflow-hidden">
           <div
             className="absolute inset-0 overflow-hidden"
@@ -305,7 +355,11 @@ function OrbitIconStrip({
   const items = subscriptions.filter((s) => filter === "all" || s.status === filter);
   if (!items.length) return null;
   return (
-    <div className="no-scrollbar mx-auto flex w-max max-w-full gap-1.5 overflow-x-auto rounded-full bg-black/40 px-2 py-1.5 shadow-[0_0_0_1px_rgba(255,255,255,0.08)]">
+    <div
+      data-no-swipe
+      className="no-scrollbar mx-auto flex w-max max-w-full gap-1.5 overflow-x-auto rounded-full bg-black/40 px-2 py-1.5 shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
+      style={{ touchAction: "pan-x" }}
+    >
       {items.map((s) => {
         const on = selectedId === s.id;
         return (
