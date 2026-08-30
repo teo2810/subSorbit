@@ -99,7 +99,7 @@ const ROWS: Row[] = [
   ["zooplus", "Zooplus", "#78BE20", "Zo", "animali", 0, "monthly"],
   ["verti", "Verti", "#00A3E0", "Ve", "assicurazioni", 19.9, "monthly"],
   ["prima", "Prima", "#FF5A00", "Pr", "assicurazioni", 14.9, "monthly"],
-  ["custom", "Personalizzato", "#22D3EE", "?", "altro", 9.99, "monthly"],
+  ["custom", "Personalizzato", "#2A3348", "?", "altro", 9.99, "monthly"],
 ];
 
 export const BRANDS: BrandDef[] = ROWS.map((r) => ({
@@ -120,7 +120,7 @@ export function getBrand(key: string): BrandDef {
     BRAND_MAP.get(key) ?? {
       key,
       name: key,
-      color: "#22D3EE",
+      color: "#2A3348",
       letter: key.slice(0, 1).toUpperCase() || "?",
       category: "altro",
       typicalPrice: 9.99,
@@ -296,7 +296,7 @@ export function drawBrand(
   ctx.save();
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fillStyle = brand.color;
+  ctx.fillStyle = "#1A2233";
   ctx.fill();
   ctx.clip();
   const ready = img && img.complete && img.naturalWidth > 0;
@@ -353,13 +353,9 @@ export function BrandBadge({
       style={{
         width: size,
         height: size,
-        background: glass
-          ? `radial-gradient(circle at 32% 28%, rgba(255,255,255,0.35), ${brand.color} 62%)`
-          : brand.color,
+        background: src && !isGlyph ? "transparent" : "rgba(255,255,255,0.08)",
         fontSize: display.length > 1 ? size * 0.32 : size * 0.42,
-        boxShadow: glass
-          ? `0 8px 22px rgba(0,0,0,0.38), 0 0 18px ${brand.color}44`
-          : `0 0 16px ${brand.color}33`,
+        boxShadow: "none",
       }}
       aria-hidden
     >
