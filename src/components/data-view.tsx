@@ -26,6 +26,8 @@ export function DataView({
 }) {
   const [sel, setSel] = useState<string | null>(null);
   const [period, setPeriod] = useState<SpendPeriod>("month");
+  const swipe = useRef({ x: 0, on: false });
+  const flipPeriod = () => setPeriod((p) => (p === "month" ? "year" : "month"));
   const slices = useMemo(
     () => spendByCategory(subscriptions, period),
     [subscriptions, period],
@@ -55,6 +57,17 @@ export function DataView({
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-36">
         <ScreenHeader onSettings={onSettings} sticky />
         <div className="px-5">
+        <div
+          onPointerDown={(e) => {
+            swipe.current = { x: e.clientX, on: true };
+          }}
+          onPointerUp={(e) => {
+            if (!swipe.current.on) return;
+            swipe.current.on = false;
+            const dx = e.clientX - swipe.current.x;
+            if (Math.abs(dx) > 50) flipPeriod();
+          }}
+        >
         <div className="relative mx-auto mt-2 flex h-[320px] w-full max-w-[320px] items-center justify-center">
           <ChartBackdrop />
           <div className="relative h-[236px] w-[236px]">
@@ -93,6 +106,7 @@ export function DataView({
               Anno
             </Chip>
           </div>
+        </div>
         </div>
 
         <div className="mt-4 flex flex-wrap justify-center gap-1.5">

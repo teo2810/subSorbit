@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScreenHeader } from "./orbit-mark";
 import { SubCard } from "./sub-card";
 import { ChartBackdrop } from "./chart-backdrop";
@@ -34,6 +34,8 @@ export function HomeView({
 }) {
   const [period, setPeriod] = useState<SpendPeriod>("month");
   const [lane, setLane] = useState<"subs" | "once">("subs");
+  const swipe = useRef({ x: 0, on: false });
+  const flipPeriod = () => setPeriod((p) => (p === "month" ? "year" : "month"));
 
   const spend = useMemo(
     () => computePeriodSpend(subscriptions, period),
@@ -70,6 +72,17 @@ export function HomeView({
         <ScreenHeader onSettings={onSettings} sticky />
 
         <div className="px-5">
+        <div
+          onPointerDown={(e) => {
+            swipe.current = { x: e.clientX, on: true };
+          }}
+          onPointerUp={(e) => {
+            if (!swipe.current.on) return;
+            swipe.current.on = false;
+            const dx = e.clientX - swipe.current.x;
+            if (Math.abs(dx) > 50) flipPeriod();
+          }}
+        >
         <div className="relative mx-auto mt-2 flex h-[320px] w-full max-w-[320px] items-center justify-center">
           <ChartBackdrop />
           <div className="relative h-[236px] w-[236px]">
@@ -99,6 +112,7 @@ export function HomeView({
               Anno
             </Chip>
           </div>
+        </div>
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2">

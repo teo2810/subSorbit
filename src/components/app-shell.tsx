@@ -103,7 +103,7 @@ export function AppShell() {
     swipe.current.on = false;
     const dx = e.clientX - swipe.current.x;
     const dy = e.clientY - swipe.current.y;
-    if (Math.abs(dx) < 72 || Math.abs(dx) < Math.abs(dy) * 1.15) return;
+    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
     const i = TAB_ORDER.indexOf(tab);
     if (dx < 0 && i < TAB_ORDER.length - 1) goTab(TAB_ORDER[i + 1]!);
     if (dx > 0 && i > 0) goTab(TAB_ORDER[i - 1]!);
@@ -135,11 +135,11 @@ export function AppShell() {
           swipe.current.on = false;
         }}
       >
-        <div
-          className="flex h-full transition-transform duration-300 ease-out"
-          style={{ width: "400%", transform: `translateX(-${idx * 25}%)` }}
-        >
-          <div className="h-full w-1/4 shrink-0">
+        <div className="relative h-full w-full overflow-hidden">
+          <div
+            className="absolute inset-0 overflow-hidden"
+            style={{ display: tab === "home" ? "block" : "none" }}
+          >
             <HomeView
               subscriptions={subscriptions}
               onOpen={setDetailId}
@@ -148,7 +148,10 @@ export function AppShell() {
               active={tab === "home"}
             />
           </div>
-          <div className="relative h-full w-1/4 shrink-0">
+          <div
+            className="absolute inset-0 overflow-hidden"
+            style={{ display: tab === "orbit" ? "block" : "none" }}
+          >
             <div className="absolute inset-0 pb-24">
               <OrbitCanvas
                 subscriptions={subscriptions}
@@ -221,7 +224,10 @@ export function AppShell() {
                 </div>
               </div>
           </div>
-          <div className="h-full w-1/4 shrink-0">
+          <div
+            className="absolute inset-0 overflow-hidden"
+            style={{ display: tab === "calendar" ? "block" : "none" }}
+          >
             <CalendarView
               subscriptions={subscriptions}
               onOpen={setDetailId}
@@ -229,7 +235,10 @@ export function AppShell() {
               onSettings={openSettings}
             />
           </div>
-          <div className="h-full w-1/4 shrink-0">
+          <div
+            className="absolute inset-0 overflow-hidden"
+            style={{ display: tab === "data" ? "block" : "none" }}
+          >
             <DataView
               subscriptions={subscriptions}
               onOpen={setDetailId}
