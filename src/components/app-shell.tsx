@@ -12,7 +12,6 @@ import { OrbitCanvas } from "./orbit-canvas";
 import { ScreenHeader } from "./orbit-mark";
 import { SettingsSheet } from "./settings-sheet";
 import { SubForm } from "./sub-form";
-import { WelcomeView } from "./welcome-view";
 import { cn } from "@/lib/cn";
 import { activeMonthlyTotal } from "@/lib/domain";
 import { formatEuroCompact } from "@/lib/format";
@@ -34,12 +33,10 @@ export function AppShell() {
   const subscriptions = useAppStore((s) => s.subscriptions);
   const orbitSpeed = useAppStore((s) => s.orbitSpeed);
   const setSeenGuide = useAppStore((s) => s.setSeenGuide);
-  const setSeenWelcome = useAppStore((s) => s.setSeenWelcome);
   const setOrbitSpeed = useAppStore((s) => s.setOrbitSpeed);
 
   const [tab, setTab] = useState<TabId>("home");
   const [filter, setFilter] = useState<StatusFilter>("all");
-  const [welcomeOpen, setWelcomeOpen] = useState(true);
   const [guideOpen, setGuideOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -59,15 +56,8 @@ export function AppShell() {
 
   useEffect(() => {
     preloadBrandIcons();
-    const afterHydrate = () => {
-      if (useAppStore.getState().seenWelcome) setWelcomeOpen(false);
-    };
     const result = useAppStore.persist.rehydrate() as void | Promise<void>;
-    if (result && typeof result.then === "function") {
-      void result.then(afterHydrate);
-    } else {
-      afterHydrate();
-    }
+    if (result && typeof result.then === "function") void result;
   }, []);
 
   const monthly = activeMonthlyTotal(subscriptions);
@@ -81,11 +71,6 @@ export function AppShell() {
     setTab(t);
     setFlash(true);
     window.setTimeout(() => setFlash(false), 420);
-  };
-
-  const closeWelcome = () => {
-    setWelcomeOpen(false);
-    setSeenWelcome(true);
   };
 
   const closeGuide = () => {
@@ -161,20 +146,7 @@ export function AppShell() {
       el.removeEventListener("touchmove", onMove);
       el.removeEventListener("touchend", onEnd);
     };
-  }, [welcomeOpen]);
-
-  if (welcomeOpen) {
-    return (
-      <>
-        <WelcomeView onStart={closeWelcome} />
-        <Toaster
-          theme="dark"
-          position="top-center"
-          toastOptions={TOAST_OPTIONS}
-        />
-      </>
-    );
-  }
+  }, []);
 
   const idx = TAB_ORDER.indexOf(tab);
   const openSettings = () => setSettingsOpen(true);
@@ -353,32 +325,70 @@ function OrbitIconStrip({
   onPick: (id: string) => void;
 }) {
   const items = subscriptions.filter((s) => filter === "all" || s.status === filter);
+  const scroller = useRef<HTMLDivElement>(null);
+  const unit = useRef(0);
+
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || items.length === 0) return;
+    const measure = () => {
+      unit.current = el.scrollWidth / 3;
+      if (unit.current > 0 && el.scrollLeft < 8) el.scrollLeft = unit.current;
+    };
+    measure();
+    const onScroll = () => {
+      const w = unit.current;
+      if (w <= 0) return;
+      if (el.scrollLeft <= w * 0.2) el.scrollLeft += w;
+      else if (el.scrollLeft >= w * 2.2) el.scrollLeft -= w;
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    requestAnimationFrame(measure);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, [items]);
+
   if (!items.length) return null;
+  const loop = [...items, ...items, ...items];
   return (
     <div
+      ref={scroller}
       data-no-swipe
-      className="no-scrollbar mx-auto flex w-max max-w-full gap-1.5 overflow-x-auto rounded-full bg-black/40 px-2 py-1.5 shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
-      style={{ touchAction: "pan-x" }}
+      className="icon-strip-scroll mx-auto w-full max-w-[720px] overflow-x-auto overflow-y-visible rounded-full bg-black/40 py-2.5"
+      style={{
+        touchAction: "pan-x",
+        WebkitOverflowScrolling: "touch",
+        scrollbarWidth: "none",
+        msOverflowStyle: "none",
+      }}
     >
-      {items.map((s) => {
-        const on = selectedId === s.id;
-        return (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => onPick(s.id)}
-            aria-label={s.name}
-            className={cn(
-              "size-8 shrink-0 rounded-full",
-              on
-                ? "icon-pulse ring-2 ring-cyan ring-offset-1 ring-offset-void"
-                : "glow-tap overflow-hidden opacity-85",
-            )}
-          >
-            <BrandBadge brandKey={s.brandKey} name={s.name} size={32} />
-          </button>
-        );
-      })}
+      <div className="flex w-max items-center gap-2 px-3">
+        {loop.map((s, i) => {
+          const on = selectedId === s.id;
+          return (
+            <button
+              key={`${s.id}-${i}`}
+              type="button"
+              onClick={() => onPick(s.id)}
+              aria-label={s.name}
+              className={cn(
+                "relative size-8 shrink-0 rounded-full",
+                on
+                  ? "icon-pulse z-10 ring-2 ring-cyan ring-offset-2 ring-offset-void"
+                  : selectedId
+                    ? "opacity-30"
+                    : "opacity-85",
+              )}
+            >
+              <BrandBadge brandKey={s.brandKey} name={s.name} size={32} />
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

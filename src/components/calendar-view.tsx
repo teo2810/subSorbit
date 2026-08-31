@@ -7,6 +7,7 @@ import {
   format,
   isSameDay,
   isSameMonth,
+  startOfDay,
   startOfMonth,
   startOfWeek,
   subMonths,
@@ -14,7 +15,7 @@ import {
 import { it } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { occursOnDay } from "@/lib/domain";
+import { nextOccurrence, occursOnDay } from "@/lib/domain";
 import { formatDayLong, formatEuroCompact, formatMonthTitle } from "@/lib/format";
 import { BrandBadge } from "@/lib/logos";
 import { SubCard } from "./sub-card";
@@ -44,13 +45,15 @@ export function CalendarView({
   }, [month]);
 
   const daySubs = subscriptions.filter((s) => occursOnDay(s, selected));
-  const upcoming = [...subscriptions]
-    .filter((s) => s.status !== "cancelled")
-    .sort(
-      (a, b) =>
-        new Date(a.nextRenewal).getTime() - new Date(b.nextRenewal).getTime(),
-    )
-    .slice(0, 6);
+  const upcoming = useMemo(() => {
+    const today = startOfDay(new Date());
+    return subscriptions
+      .filter((s) => s.status !== "cancelled")
+      .map((s) => ({ s, next: startOfDay(nextOccurrence(s.nextRenewal, s.frequency, today)) }))
+      .filter(({ s, next }) => (s.frequency === "once" ? next >= today : true))
+      .sort((a, b) => a.next.getTime() - b.next.getTime() || a.s.name.localeCompare(b.s.name, "it"))
+      .map(({ s }) => s);
+  }, [subscriptions]);
 
   return (
     <div className="mx-auto flex h-full w-full max-w-[520px] flex-col">

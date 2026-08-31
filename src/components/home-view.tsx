@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ScreenHeader } from "./orbit-mark";
 import { SubCard } from "./sub-card";
 import { ChartBackdrop } from "./chart-backdrop";
@@ -35,12 +35,6 @@ export function HomeView({
   const [period, setPeriod] = useState<SpendPeriod>("month");
   const [lane, setLane] = useState<"subs" | "once">("subs");
 
-  useEffect(() => {
-    const flip = () => setPeriod((p) => (p === "month" ? "year" : "month"));
-    window.addEventListener("orbit-flip-period", flip);
-    return () => window.removeEventListener("orbit-flip-period", flip);
-  }, []);
-
   const spend = useMemo(
     () => computePeriodSpend(subscriptions, period),
     [subscriptions, period],
@@ -76,7 +70,6 @@ export function HomeView({
         <ScreenHeader onSettings={onSettings} sticky />
 
         <div className="px-5">
-        <div data-period-swipe>
         <div className="relative mx-auto mt-2 flex h-[320px] w-full max-w-[320px] items-center justify-center">
           <ChartBackdrop />
           <div className="relative h-[236px] w-[236px]">
@@ -106,7 +99,6 @@ export function HomeView({
               Anno
             </Chip>
           </div>
-        </div>
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2">

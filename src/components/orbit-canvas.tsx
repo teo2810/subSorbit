@@ -27,6 +27,7 @@ interface Body {
   inc: number;
   node: number;
   omega: number;
+  urgency: number;
   px: number;
   py: number;
   pz: number;
@@ -111,51 +112,80 @@ function sizeStep(share: number) {
   return 10;
 }
 
-function speedStep(s: Subscription) {
-  if (s.status === "cancelled") return 0.014;
-  const u = orbitUrgency(s);
-  if (u >= 0.66) return 0.05;
-  if (u >= 0.33) return 0.032;
-  return 0.018;
-}
-
 function bandOf(s: Subscription, total: number) {
-  if (classify(s, total) === "trash") return "trash" as const;
+  if (s.status === "cancelled" || classify(s, total) === "trash") return "trash" as const;
   if (s.frequency === "weekly") return "weekly" as const;
   if (s.frequency === "yearly" || s.frequency === "once") return "yearly" as const;
   return "monthly" as const;
 }
 
-function placeOnBands(items: Subscription[], key: keyof typeof BAND, total: number): Body[] {
-  if (!items.length) return [];
+const RING_OMEGA = 0.026;
+
+function bodySize(s: Subscription, key: keyof typeof BAND, total: number) {
+  if (key === "trash") return 11;
+  const share = total > 0 ? monthlyEquivalent(s) / Math.max(total, 0.01) : 0.08;
+  return sizeStep(share);
+}
+
+function packBand(
+  items: Subscription[],
+  key: keyof typeof BAND,
+  total: number,
+  startR: number,
+): { bodies: Body[]; nextR: number } {
   const base = BAND[key];
-  const cap = 5;
-  const rings = Math.ceil(items.length / cap);
-  return items.map((s, i) => {
-    const ring = Math.floor(i / cap);
-    const slot = i - ring * cap;
-    const onRing = Math.min(cap, items.length - ring * cap);
-    const share = total > 0 ? monthlyEquivalent(s) / Math.max(total, 0.01) : 0.08;
-    const size = key === "trash" ? 12 : sizeStep(share);
-    return {
-      id: s.id,
-      name: s.name,
-      kind: classify(s, total),
-      paused: s.status === "paused",
-      brandKey: s.brandKey,
-      color: getBrand(s.brandKey).color,
-      radius: base.radius + ring * 28,
-      angle: (slot / Math.max(onRing, 1)) * Math.PI * 2 + ring * 0.4 + hash(i + 2),
-      size,
-      inc: base.inc,
-      node: base.node,
-      omega: speedStep(s),
-      px: 0,
-      py: 0,
-      pz: 0,
-      pr: size,
-    };
-  });
+  if (!items.length) return { bodies: [], nextR: startR };
+  const bodies: Body[] = [];
+  let r = startR;
+  let i = 0;
+  let ring = 0;
+  while (i < items.length) {
+    const batch: { s: Subscription; size: number }[] = [];
+    let used = 0;
+    const circ = Math.max(1, 2 * Math.PI * r);
+    while (i < items.length) {
+      const s = items[i]!;
+      const size = bodySize(s, key, total);
+      const need = size * 2 + 16;
+      if (batch.length && used + need > circ * 0.88) break;
+      batch.push({ s, size });
+      used += need;
+      i += 1;
+      if (batch.length >= 7) break;
+    }
+    if (!batch.length) {
+      const s = items[i]!;
+      batch.push({ s, size: bodySize(s, key, total) });
+      i += 1;
+    }
+    const n = batch.length;
+    const maxSize = batch.reduce((m, it) => Math.max(m, it.size), 10);
+    for (let slot = 0; slot < n; slot++) {
+      const it = batch[slot]!;
+      bodies.push({
+        id: it.s.id,
+        name: it.s.name,
+        kind: classify(it.s, total),
+        paused: it.s.status === "paused",
+        brandKey: it.s.brandKey,
+        color: getBrand(it.s.brandKey).color,
+        radius: r,
+        angle: (slot / n) * Math.PI * 2 + ring * 0.31,
+        size: it.size,
+        inc: base.inc,
+        node: base.node,
+        omega: RING_OMEGA,
+        urgency: it.s.status === "cancelled" ? 0 : orbitUrgency(it.s),
+        px: 0,
+        py: 0,
+        pz: 0,
+        pr: it.size,
+      });
+    }
+    r += Math.max(34, maxSize * 2 + 18);
+    ring += 1;
+  }
+  return { bodies, nextR: r + 14 };
 }
 
 function buildBodies(subs: Subscription[], filter: StatusFilter): Body[] {
@@ -171,12 +201,11 @@ function buildBodies(subs: Subscription[], filter: StatusFilter): Body[] {
   for (const k of Object.keys(groups) as (keyof typeof groups)[]) {
     groups[k].sort((a, b) => monthlyEquivalent(b) - monthlyEquivalent(a));
   }
-  return [
-    ...placeOnBands(groups.weekly, "weekly", total),
-    ...placeOnBands(groups.monthly, "monthly", total),
-    ...placeOnBands(groups.yearly, "yearly", total),
-    ...placeOnBands(groups.trash, "trash", total),
-  ];
+  const weekly = packBand(groups.weekly, "weekly", total, BAND.weekly.radius);
+  const monthly = packBand(groups.monthly, "monthly", total, Math.max(BAND.monthly.radius, weekly.nextR));
+  const yearly = packBand(groups.yearly, "yearly", total, Math.max(BAND.yearly.radius, monthly.nextR));
+  const trash = packBand(groups.trash, "trash", total, Math.max(BAND.trash.radius, yearly.nextR));
+  return [...weekly.bodies, ...monthly.bodies, ...yearly.bodies, ...trash.bodies];
 }
 
 export function trashRadius(bodies: Body[]) {
@@ -241,7 +270,7 @@ export function OrbitCanvas({
     const sim = simRef.current;
     sim.bodies = buildBodies(subscriptions, filter);
     sim.totalLabel = formatEuroCompact(activeMonthlyTotal(subscriptions));
-    sim.trashR = BAND.trash.radius;
+    sim.trashR = trashRadius(sim.bodies);
   }, [subscriptions, filter]);
 
   useEffect(() => {
@@ -489,7 +518,7 @@ export function OrbitCanvas({
         );
       }
       drawRing(
-        BAND.trash.radius,
+        sim.trashR,
         BAND.trash.inc,
         BAND.trash.node,
         selected ? "rgba(210,200,180,0.12)" : "rgba(210,200,180,0.42)",
@@ -589,9 +618,9 @@ export function OrbitCanvas({
               b.py + oy,
               b.pr * 1.7,
             );
-            cloud.addColorStop(0, "rgba(150,158,180,0.38)");
-            cloud.addColorStop(0.55, "rgba(90,98,125,0.2)");
-            cloud.addColorStop(1, "rgba(90,98,125,0)");
+            cloud.addColorStop(0, "rgba(40,46,62,0.55)");
+            cloud.addColorStop(0.55, "rgba(18,22,34,0.32)");
+            cloud.addColorStop(1, "rgba(8,10,16,0)");
             ctx.fillStyle = cloud;
             ctx.beginPath();
             ctx.arc(b.px + ox, b.py + oy, b.pr * 1.7, 0, Math.PI * 2);
@@ -599,24 +628,28 @@ export function OrbitCanvas({
           }
         }
 
-        if (sim.focusId === b.id) {
-          const beat = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(now * 0.0042));
-          const rad = b.pr * (1.55 + beat * 0.7);
-          const halo = ctx.createRadialGradient(
-            b.px,
-            b.py,
-            b.pr * 0.7,
-            b.px,
-            b.py,
-            rad,
-          );
+        if (!b.paused && b.kind !== "trash") {
+          const u = Math.max(0, Math.min(1, b.urgency));
+          const beat = 0.5 + 0.5 * Math.sin(now * (0.0018 + u * 0.007));
+          const glow = 0.12 + u * 0.62 * beat;
+          const rad = b.pr * (1.35 + u * 0.85 + (sim.focusId === b.id ? 0.35 : 0));
+          const halo = ctx.createRadialGradient(b.px, b.py, b.pr * 0.55, b.px, b.py, rad);
+          const a = Math.round((40 + glow * 140) * (sim.focusId === b.id ? 1 : 0.85))
+            .toString(16)
+            .padStart(2, "0");
           halo.addColorStop(0, `${b.color}00`);
-          halo.addColorStop(0.45, `${b.color}${Math.round(50 + beat * 40).toString(16).padStart(2, "0")}`);
+          halo.addColorStop(0.42, `${b.color}${a}`);
           halo.addColorStop(1, `${b.color}00`);
           ctx.fillStyle = halo;
           ctx.beginPath();
           ctx.arc(b.px, b.py, rad, 0, Math.PI * 2);
           ctx.fill();
+        } else if (sim.focusId === b.id) {
+          ctx.strokeStyle = "rgba(180,190,210,0.55)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(b.px, b.py, b.pr * 1.25, 0, Math.PI * 2);
+          ctx.stroke();
         }
 
         drawBrand(ctx, b.brandKey, b.px, b.py, b.pr);

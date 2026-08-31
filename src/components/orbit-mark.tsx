@@ -132,10 +132,19 @@ export function ScreenHeader({
     >
       <div className="relative flex items-center justify-between px-5 pt-5 pb-2">
         <div className="flex min-w-0 items-center gap-2">
-          <OrbitSun size={26} pulse />
+          <img
+            src={`${import.meta.env.BASE_URL}icon-192.png`}
+            alt=""
+            width={26}
+            height={26}
+            className="size-[26px] rounded-full object-cover"
+          />
           <div className="min-w-0">
-            <h1 className="leading-none">
+            <h1 className="flex items-baseline gap-2 leading-none">
               <OrbitMark size="sm" />
+              <span className="font-display text-[10px] font-medium tracking-wide text-muted">
+                v1.0
+              </span>
             </h1>
             {subtitle ? (
               <p className="mt-1 truncate text-[11px] text-muted">{subtitle}</p>

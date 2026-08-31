@@ -76,7 +76,9 @@ export function SettingsSheet({
       />
       <div className="sheet-in glass relative z-10 w-full max-w-[480px] rounded-t-xl px-5 pt-5 pb-8">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Impostazioni</h2>
+          <h2 className="text-lg font-semibold">
+            Impostazioni <span className="text-sm font-normal text-muted">v1.0</span>
+          </h2>
           <CloseButton onClick={onClose} />
         </div>
         <label className="glass-soft block rounded-lg px-4 py-3">
@@ -88,15 +90,25 @@ export function SettingsSheet({
           />
         </label>
         <label className="glass-soft mt-2 block rounded-lg px-4 py-3">
-          <span className="text-xs text-muted">Email per backup</span>
+          <span className="text-xs text-muted">Email</span>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="tu@email.it"
+            placeholder="opzionale"
             className="mt-1 w-full bg-transparent text-sm outline-none placeholder:text-faint"
           />
         </label>
+
+        <div className="mt-4 rounded-lg bg-white/5 px-4 py-3">
+          <p className="text-sm font-medium">Backup</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-muted">
+            I dati restano solo su questo telefono. Esporta un file JSON per
+            salvarli. Per ripristinarli, importa lo stesso file. Nome ed email
+            finiscono nel file: non parte nessuna mail.
+          </p>
+        </div>
+
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button
             type="button"

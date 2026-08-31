@@ -24,9 +24,9 @@ const RULES = [
     text: "La distanza dal sole segue la frequenza di rinnovo: settimanale vicino, mensile in mezzo, annuale e una tantum più lontani.",
   },
   {
-    icon: Timer,
-    title: "Più veloce, più vicino alla scadenza",
-    text: "La velocità di rotazione cresce man mano che si avvicina il prossimo rinnovo.",
+    icon: Sparkles,
+    title: "Più brilla, più è vicino alla scadenza",
+    text: "Il bagliore e il pulse crescono verso il rinnovo. La velocità dell’orbita la scegli tu (0.5× / 1× / 2×).",
   },
   {
     icon: Compass,
@@ -36,7 +36,7 @@ const RULES = [
   {
     icon: Sparkles,
     title: "Selezione",
-    text: "Tocca un pianeta: l’orbita prende il colore del brand e l’icona si illumina.",
+    text: "Tocca un pianeta o l’icona nella barra: pulse sull’icona piccola e focus in orbita.",
   },
   {
     icon: Trash2,
