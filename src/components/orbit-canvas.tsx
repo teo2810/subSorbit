@@ -299,9 +299,9 @@ export function OrbitCanvas({
     }
     sim.focusId = id;
     sim.followId = id;
-    sim.targetZoom = pinnedId ? 1.38 : 1.5;
-    sim.targetTilt = pinnedId ? 0.5 : 0.55;
-    sim.targetCyFactor = pinnedId ? 0.28 : 0.38;
+    sim.targetZoom = pinnedId ? 2.05 : 2.2;
+    sim.targetTilt = pinnedId ? 0.46 : 0.5;
+    sim.targetCyFactor = pinnedId ? 0.32 : 0.4;
   }, [focusId, pinnedId]);
 
   useEffect(() => {
@@ -397,7 +397,7 @@ export function OrbitCanvas({
       e.preventDefault();
       sim.targetZoom = Math.max(
         0.55,
-        Math.min(2.4, sim.targetZoom * (e.deltaY > 0 ? 0.92 : 1.08)),
+        Math.min(2.8, sim.targetZoom * (e.deltaY > 0 ? 0.92 : 1.08)),
       );
     };
     const onTouchStart = (e: TouchEvent) => {
@@ -416,7 +416,7 @@ export function OrbitCanvas({
         const a = e.touches[0]!;
         const b = e.touches[1]!;
         const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-        sim.targetZoom = Math.max(0.55, Math.min(2.4, sim.pinch.zoom * (d / sim.pinch.dist)));
+        sim.targetZoom = Math.max(0.55, Math.min(2.8, sim.pinch.zoom * (d / sim.pinch.dist)));
       }
     };
     const onTouchEnd = () => {
@@ -655,11 +655,23 @@ export function OrbitCanvas({
           ctx.beginPath();
           ctx.arc(b.px, b.py, b.pr * (1.18 + beat * 0.12 * u), 0, Math.PI * 2);
           ctx.stroke();
-        } else if (sim.focusId === b.id) {
-          ctx.strokeStyle = "rgba(180,190,210,0.55)";
-          ctx.lineWidth = 1.5;
+        }
+        if (sim.focusId === b.id) {
+          const pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(now * 0.0065));
+          const cyanR = b.pr * (3.4 + pulse * 1.8);
+          const cyan = ctx.createRadialGradient(b.px, b.py, b.pr * 0.4, b.px, b.py, cyanR);
+          cyan.addColorStop(0, `rgba(165,243,252,${0.55 * pulse})`);
+          cyan.addColorStop(0.28, `rgba(34,211,238,${0.5 * pulse})`);
+          cyan.addColorStop(0.62, `rgba(34,211,238,${0.18 * pulse})`);
+          cyan.addColorStop(1, "rgba(34,211,238,0)");
+          ctx.fillStyle = cyan;
           ctx.beginPath();
-          ctx.arc(b.px, b.py, b.pr * 1.25, 0, Math.PI * 2);
+          ctx.arc(b.px, b.py, cyanR, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = `rgba(165,243,252,${0.45 + pulse * 0.5})`;
+          ctx.lineWidth = Math.max(2, b.pr * 0.22);
+          ctx.beginPath();
+          ctx.arc(b.px, b.py, b.pr * (1.35 + pulse * 0.28), 0, Math.PI * 2);
           ctx.stroke();
         }
 

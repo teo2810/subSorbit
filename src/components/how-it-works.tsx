@@ -36,7 +36,7 @@ const RULES = [
   {
     icon: Sparkles,
     title: "Selezione",
-    text: "Tocca un pianeta o l’icona nella barra: pulse sull’icona piccola e focus in orbita.",
+    text: "Tocca un pianeta o l’icona nella barra: zoom ravvicinato, bagliore ciano ampio e pulse sull’icona piccola. Il resto si spegne.",
   },
   {
     icon: Trash2,
