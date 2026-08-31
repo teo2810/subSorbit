@@ -203,43 +203,59 @@ function CategoryRing({
 
     const tint = (s: { id: string; color: string }) =>
       selected && selected !== s.id ? fade(s.color, 0.28) : s.color;
-    const firstCol = slices[0] ? tint(slices[0]) : "#22d3ee";
-    const lastCol = slices.length ? tint(slices[slices.length - 1]!) : firstCol;
-    const grad = ctx.createConicGradient(start, cx, cx);
-    grad.addColorStop(0, firstCol);
-    let t = 0;
-    slices.forEach((s, i) => {
-      const share = (s.value / total) * 0.75;
-      const col = tint(s);
-      if (i > 0) grad.addColorStop(Math.min(0.748, Math.max(0.001, t)), col);
-      t += share;
-      grad.addColorStop(Math.min(0.75, Math.max(0.001, t)), col);
-    });
-    grad.addColorStop(0.75, lastCol);
-    grad.addColorStop(1, lastCol);
 
-    ctx.save();
-    ctx.lineCap = "round";
-    ctx.strokeStyle = grad;
-    ctx.filter = "blur(16px)";
-    ctx.globalAlpha = 0.7;
-    ctx.lineWidth = 18;
-    ctx.beginPath();
-    ctx.arc(cx, cx, r, start, start + sweep);
-    ctx.stroke();
-    ctx.filter = "blur(7px)";
-    ctx.globalAlpha = 0.55;
-    ctx.lineWidth = 16;
-    ctx.beginPath();
-    ctx.arc(cx, cx, r, start, start + sweep);
-    ctx.stroke();
-    ctx.filter = "none";
-    ctx.globalAlpha = 1;
-    ctx.lineWidth = stroke;
-    ctx.beginPath();
-    ctx.arc(cx, cx, r, start, start + sweep);
-    ctx.stroke();
-    ctx.restore();
+    const stops: { t: number; rgb: [number, number, number] }[] = [];
+    let acc = 0;
+    slices.forEach((s) => {
+      const rgb = hexRgb(tint(s)) ?? hexRgb(s.color) ?? [34, 211, 238];
+      stops.push({ t: acc, rgb });
+      acc += s.value / total;
+      stops.push({ t: acc, rgb });
+    });
+    if (!stops.length) stops.push({ t: 0, rgb: [34, 211, 238] }, { t: 1, rgb: [34, 211, 238] });
+
+    const colorAt = (p: number): string => {
+      const x = Math.max(0, Math.min(1, p));
+      let i = 0;
+      while (i < stops.length - 1 && stops[i + 1]!.t < x) i += 1;
+      const a = stops[i]!;
+      const b = stops[Math.min(i + 1, stops.length - 1)]!;
+      const span = Math.max(0.0001, b.t - a.t);
+      const u = Math.max(0, Math.min(1, (x - a.t) / span));
+      const m = (q: number, w: number) => Math.round(q + (w - q) * u);
+      return `rgb(${m(a.rgb[0], b.rgb[0])},${m(a.rgb[1], b.rgb[1])},${m(a.rgb[2], b.rgb[2])})`;
+    };
+
+    const drawSweep = (width: number, blur: number, alpha: number) => {
+      ctx.save();
+      ctx.lineCap = "butt";
+      ctx.lineWidth = width;
+      ctx.globalAlpha = alpha;
+      ctx.filter = blur ? `blur(${blur}px)` : "none";
+      const steps = 72;
+      for (let i = 0; i < steps; i++) {
+        const a0 = start + (sweep * i) / steps;
+        const a1 = start + (sweep * (i + 1)) / steps;
+        ctx.beginPath();
+        ctx.strokeStyle = colorAt(i / steps);
+        ctx.arc(cx, cx, r, a0, a1);
+        ctx.stroke();
+      }
+      ctx.restore();
+    };
+
+    drawSweep(18, 14, 0.55);
+    drawSweep(16, 6, 0.4);
+    drawSweep(stroke, 0, 1);
+
+    const cap = (ang: number, col: string) => {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(ang) * r, cx + Math.sin(ang) * r, stroke / 2, 0, Math.PI * 2);
+      ctx.fill();
+    };
+    cap(start, colorAt(0));
+    cap(start + sweep, colorAt(0.999));
   }, [slices, selected, grow, total]);
 
   const hit = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -285,6 +301,18 @@ function fade(hex: string, a: number) {
   const g = parseInt(n.slice(2, 4), 16);
   const b = parseInt(n.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${a})`;
+}
+
+function hexRgb(c: string): [number, number, number] | null {
+  if (c[0] === "#" && c.length === 7) {
+    return [
+      parseInt(c.slice(1, 3), 16),
+      parseInt(c.slice(3, 5), 16),
+      parseInt(c.slice(5, 7), 16),
+    ];
+  }
+  const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
 }
 
 function Chip({
