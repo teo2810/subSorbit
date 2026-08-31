@@ -268,11 +268,16 @@ function CategoryRing({
                 davvero tra loro invece di avere bordi netti tra un bagliore
                 e l'altro. */}
             {[
-              { filter: "url(#category-ring-glow-3)", opacity: 0.55 },
-              { filter: "url(#category-ring-glow-2)", opacity: 0.8 },
+              { filter: "url(#category-ring-glow-3)", opacity: 0.75 },
+              { filter: "url(#category-ring-glow-2)", opacity: 0.9 },
               { filter: "url(#category-ring-glow-1)", opacity: 1 },
             ].map((layer, li) => (
-              <g key={`halo-${li}`} filter={layer.filter} opacity={layer.opacity}>
+              <g
+                key={`halo-${li}`}
+                filter={layer.filter}
+                opacity={layer.opacity}
+                style={{ mixBlendMode: "screen" }}
+              >
                 {arcs.map((a) => (
                   <circle
                     key={`glow-${li}-${a.id}`}
@@ -318,23 +323,9 @@ function CategoryRing({
           </>
         ) : (
           <>
-            {/* Anello completo appiattito sullo sfondo, come contesto */}
-            <g opacity={0.16}>
-              {arcs.map((a) => (
-                <circle
-                  key={`dim-${a.id}`}
-                  cx={cx}
-                  cy={cx}
-                  r={r}
-                  fill="none"
-                  stroke={a.color}
-                  strokeWidth={stroke}
-                  strokeLinecap="butt"
-                  strokeDasharray={`${Math.max(0.01, a.len)} ${c}`}
-                  strokeDashoffset={-a.start}
-                />
-              ))}
-            </g>
+            {/* Nessun anello colorato di sfondo: da selezionati il contesto
+                è la sola traccia neutra già disegnata sopra, così non
+                restano visibili le micro-categorie "gonfiate" al minimo. */}
             {/* Arco isolato con la stessa identica ricetta dell'anello ciano
                 della home: colore pieno + 3 drop-shadow impilati. */}
             {activeArc ? (
