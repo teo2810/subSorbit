@@ -180,36 +180,40 @@ function CategoryRing({
     return () => window.clearTimeout(t);
   }, [active, slices]);
 
-  const filled = 75 * Math.max(0.001, shown);
-  const tone = (s: { id: string; color: string }) =>
-    selected && selected !== s.id ? fadeHex(s.color, 0.28) : s.color;
-  const stops: string[] = [];
+  const segs: { id: string; slice: string; color: string; start: number; len: number; glow: boolean }[] = [];
   let acc = 0;
   slices.forEach((s, i) => {
-    const share = s.value / total;
-    const col = tone(s);
-    if (i === 0) stops.push(`${col} 0%`);
-    stops.push(`${col} ${((acc + share * 0.5) * 75).toFixed(2)}%`);
-    acc += share;
-    if (i === slices.length - 1) stops.push(`${col} ${filled.toFixed(2)}%`);
+    const raw = (s.value / total) * track;
+    const next = slices[i + 1];
+    const blend = next ? Math.min(raw, (next.value / total) * track) * 0.5 : 0;
+    const solid = Math.max(0.2, raw - blend);
+    segs.push({
+      id: `${s.id}-s`,
+      slice: s.id,
+      color: s.color,
+      start: acc * shown,
+      len: solid * shown,
+      glow: true,
+    });
+    acc += solid;
+    if (next && blend > 0.4) {
+      const steps = 8;
+      for (let k = 1; k <= steps; k++) {
+        const t = k / (steps + 1);
+        segs.push({
+          id: `${s.id}-b${k}`,
+          slice: t < 0.5 ? s.id : next.id,
+          color: mixHex(s.color, next.color, t),
+          start: acc * shown,
+          len: (blend / steps) * shown,
+          glow: false,
+        });
+        acc += blend / steps;
+      }
+    }
   });
-  stops.push(`transparent ${filled.toFixed(2)}%`);
-  stops.push("transparent 100%");
-  const glowCol = selected
-    ? slices.find((s) => s.id === selected)?.color ?? "#22d3ee"
-    : "#7dd3fc";
-  const firstCol =
-    selected && slices[0] && selected !== slices[0].id
-      ? fadeHex(slices[0]!.color, 0.28)
-      : slices[0]?.color ?? "#22d3ee";
-  const lastCol =
-    selected && slices.length && selected !== slices[slices.length - 1]!.id
-      ? fadeHex(slices[slices.length - 1]!.color, 0.28)
-      : slices[slices.length - 1]?.color ?? firstCol;
-  const startA = (225 * Math.PI) / 180;
-  const endA = startA + ((270 * Math.PI) / 180) * shown;
 
-  const hit = (e: React.MouseEvent<HTMLDivElement>) => {
+  const hit = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
@@ -234,70 +238,68 @@ function CategoryRing({
     }
   };
 
-  const cap = (ang: number, col: string) => {
-    const x = cx + Math.cos(ang) * r;
-    const y = cx + Math.sin(ang) * r;
-    return (
-      <span
-        className="absolute rounded-full"
-        style={{
-          width: stroke,
-          height: stroke,
-          left: x - stroke / 2,
-          top: y - stroke / 2,
-          background: col,
-          boxShadow: `0 0 8px ${col}, 0 0 16px ${col}99`,
-        }}
-      />
-    );
-  };
-
   return (
-    <div className="absolute inset-0 cursor-pointer" onClick={hit}>
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
-        overflow="visible"
-        className="absolute inset-0 pointer-events-none"
-        aria-hidden
-      >
-        <g transform={`rotate(135 ${cx} ${cx})`}>
-          <circle
-            cx={cx}
-            cy={cx}
-            r={r}
-            fill="none"
-            stroke="rgba(165,243,252,0.18)"
-            strokeWidth={stroke}
-            strokeLinecap="round"
-            strokeDasharray={`${track} ${c}`}
-          />
-        </g>
-      </svg>
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `conic-gradient(from 225deg, ${stops.join(", ")})`,
-          WebkitMaskImage: `radial-gradient(closest-side, transparent calc(${((r - stroke / 2) / (size / 2)) * 100}% - 0.5px), #000 calc(${((r - stroke / 2) / (size / 2)) * 100}%), #000 calc(${((r + stroke / 2) / (size / 2)) * 100}%), transparent calc(${((r + stroke / 2) / (size / 2)) * 100}% + 0.5px))`,
-          maskImage: `radial-gradient(closest-side, transparent calc(${((r - stroke / 2) / (size / 2)) * 100}% - 0.5px), #000 calc(${((r - stroke / 2) / (size / 2)) * 100}%), #000 calc(${((r + stroke / 2) / (size / 2)) * 100}%), transparent calc(${((r + stroke / 2) / (size / 2)) * 100}% + 0.5px))`,
-          filter: `drop-shadow(0 0 6px ${glowCol}) drop-shadow(0 0 16px ${glowCol}99)`,
-          transition: "filter 280ms ease, opacity 280ms ease",
-        }}
-      />
-      {cap(startA, firstCol)}
-      {shown > 0.02 ? cap(endA, lastCol) : null}
-    </div>
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      overflow="visible"
+      onClick={hit}
+      className="absolute inset-0 cursor-pointer"
+      aria-hidden
+    >
+      <g transform={`rotate(135 ${cx} ${cx})`}>
+        <circle
+          cx={cx}
+          cy={cx}
+          r={r}
+          fill="none"
+          stroke="rgba(165,243,252,0.18)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${track} ${c}`}
+        />
+        {segs.map((s, i) => {
+          const dim = Boolean(selected && selected !== s.slice);
+          const hex = s.color;
+          const ends = i === 0 || i === segs.length - 1;
+          return (
+            <circle
+              key={s.id}
+              cx={cx}
+              cy={cx}
+              r={r}
+              fill="none"
+              stroke={hex}
+              strokeWidth={stroke}
+              strokeLinecap={ends ? "round" : "butt"}
+              strokeDasharray={`${Math.max(0.01, s.len)} ${c}`}
+              strokeDashoffset={-s.start}
+              style={{
+                opacity: dim ? 0.22 : 1,
+                filter: dim || !s.glow
+                  ? "none"
+                  : `drop-shadow(0 0 6px ${hex}) drop-shadow(0 0 16px ${hex}aa)`,
+                transition:
+                  "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease",
+              }}
+            />
+          );
+        })}
+      </g>
+    </svg>
   );
 }
 
-function fadeHex(hex: string, a: number) {
-  const n = hex.replace("#", "");
-  if (n.length !== 6) return hex;
-  const r = parseInt(n.slice(0, 2), 16);
-  const g = parseInt(n.slice(2, 4), 16);
-  const b = parseInt(n.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${a})`;
+function mixHex(a: string, b: string, t: number) {
+  const pa = a.replace("#", "");
+  const pb = b.replace("#", "");
+  if (pa.length !== 6 || pb.length !== 6) return a;
+  const mix = (i: number) =>
+    Math.round(parseInt(pa.slice(i, i + 2), 16) * (1 - t) + parseInt(pb.slice(i, i + 2), 16) * t)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${mix(0)}${mix(2)}${mix(4)}`;
 }
 
 function Chip({
