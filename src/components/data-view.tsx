@@ -192,7 +192,7 @@ function CategoryRing({
 
     const start = (135 * Math.PI) / 180;
     const full = (270 * Math.PI) / 180;
-    const g = Math.max(0.001, grow);
+    const sweep = full * Math.max(0.001, grow);
 
     ctx.lineCap = "round";
     ctx.strokeStyle = "rgba(165,243,252,0.16)";
@@ -203,40 +203,43 @@ function CategoryRing({
 
     const tint = (s: { id: string; color: string }) =>
       selected && selected !== s.id ? fade(s.color, 0.28) : s.color;
+    const firstCol = slices[0] ? tint(slices[0]) : "#22d3ee";
+    const lastCol = slices.length ? tint(slices[slices.length - 1]!) : firstCol;
+    const grad = ctx.createConicGradient(start, cx, cx);
+    grad.addColorStop(0, firstCol);
+    let t = 0;
+    slices.forEach((s, i) => {
+      const share = (s.value / total) * 0.75;
+      const col = tint(s);
+      if (i > 0) grad.addColorStop(Math.min(0.748, Math.max(0.001, t)), col);
+      t += share;
+      grad.addColorStop(Math.min(0.75, Math.max(0.001, t)), col);
+    });
+    grad.addColorStop(0.75, lastCol);
+    grad.addColorStop(1, lastCol);
 
-    const segs = slices
-      .map((s) => ({ color: tint(s), ang: (s.value / total) * full * g }))
-      .filter((s) => s.ang > 0.0008);
-
-    const paint = (width: number, blur: number, alpha: number) => {
-      ctx.save();
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.lineWidth = width;
-      ctx.globalAlpha = alpha;
-      ctx.filter = blur ? `blur(${blur}px)` : "none";
-      let a = start;
-      segs.forEach((s, i) => {
-        const next = a + s.ang;
-        ctx.beginPath();
-        ctx.strokeStyle = s.color;
-        ctx.arc(cx, cx, r, a, Math.min(start + full * g, next));
-        ctx.stroke();
-        if (i < segs.length - 1) {
-          const mid = hexMix(s.color, segs[i + 1]!.color, 0.5);
-          ctx.beginPath();
-          ctx.strokeStyle = mid;
-          ctx.arc(cx, cx, r, next - 0.04, next + 0.04);
-          ctx.stroke();
-        }
-        a = next;
-      });
-      ctx.restore();
-    };
-
-    paint(18, 16, 0.7);
-    paint(16, 7, 0.55);
-    paint(stroke, 0, 1);
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.strokeStyle = grad;
+    ctx.filter = "blur(16px)";
+    ctx.globalAlpha = 0.7;
+    ctx.lineWidth = 18;
+    ctx.beginPath();
+    ctx.arc(cx, cx, r, start, start + sweep);
+    ctx.stroke();
+    ctx.filter = "blur(7px)";
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 16;
+    ctx.beginPath();
+    ctx.arc(cx, cx, r, start, start + sweep);
+    ctx.stroke();
+    ctx.filter = "none";
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = stroke;
+    ctx.beginPath();
+    ctx.arc(cx, cx, r, start, start + sweep);
+    ctx.stroke();
+    ctx.restore();
   }, [slices, selected, grow, total]);
 
   const hit = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -282,17 +285,6 @@ function fade(hex: string, a: number) {
   const g = parseInt(n.slice(2, 4), 16);
   const b = parseInt(n.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${a})`;
-}
-
-function hexMix(a: string, b: string, t: number) {
-  const pa = a.replace("#", "");
-  const pb = b.replace("#", "");
-  if (pa.length !== 6 || pb.length !== 6) return a;
-  const mix = (i: number) =>
-    Math.round(
-      parseInt(pa.slice(i, i + 2), 16) * (1 - t) + parseInt(pb.slice(i, i + 2), 16) * t,
-    );
-  return `rgb(${mix(0)},${mix(2)},${mix(4)})`;
 }
 
 function Chip({
