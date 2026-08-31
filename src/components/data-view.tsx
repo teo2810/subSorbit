@@ -180,13 +180,30 @@ function CategoryRing({
     return () => window.clearTimeout(t);
   }, [active, slices]);
 
-  const segs: { id: string; color: string; start: number; len: number }[] = [];
+  const segs: { id: string; slice: string; color: string; start: number; len: number }[] = [];
   let acc = 0;
-  for (const s of slices) {
-    const len = (s.value / total) * track * shown;
-    segs.push({ id: s.id, color: s.color, start: acc * shown, len });
-    acc += (s.value / total) * track;
-  }
+  slices.forEach((s, i) => {
+    const raw = (s.value / total) * track;
+    const next = slices[i + 1];
+    const blend = next ? Math.min(raw, (next.value / total) * track) * 0.4 : 0;
+    const solid = Math.max(0.01, raw - blend);
+    segs.push({ id: `${s.id}-s`, slice: s.id, color: s.color, start: acc * shown, len: solid * shown });
+    acc += solid;
+    if (next && blend > 0.5) {
+      const steps = 6;
+      for (let k = 1; k <= steps; k++) {
+        const t = k / (steps + 1);
+        segs.push({
+          id: `${s.id}-b${k}`,
+          slice: t < 0.5 ? s.id : next.id,
+          color: mixHex(s.color, next.color, t),
+          start: acc * shown,
+          len: (blend / steps) * shown,
+        });
+        acc += blend / steps;
+      }
+    }
+  });
 
   const hit = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -235,7 +252,7 @@ function CategoryRing({
           strokeDasharray={`${track} ${c}`}
         />
         {segs.map((s, i) => {
-          const dim = Boolean(selected && selected !== s.id);
+          const dim = Boolean(selected && selected !== s.slice);
           const hex = s.color;
           return (
             <circle
@@ -263,6 +280,17 @@ function CategoryRing({
       </g>
     </svg>
   );
+}
+
+function mixHex(a: string, b: string, t: number) {
+  const pa = a.replace("#", "");
+  const pb = b.replace("#", "");
+  if (pa.length !== 6 || pb.length !== 6) return a;
+  const mix = (i: number) =>
+    Math.round(parseInt(pa.slice(i, i + 2), 16) * (1 - t) + parseInt(pb.slice(i, i + 2), 16) * t)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${mix(0)}${mix(2)}${mix(4)}`;
 }
 
 function Chip({
