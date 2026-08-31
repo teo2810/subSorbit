@@ -239,8 +239,14 @@ function CategoryRing({
       aria-hidden
     >
       <defs>
-        <filter id="category-ring-glow" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="5.5" />
+        <filter id="category-ring-glow-1" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="3" />
+        </filter>
+        <filter id="category-ring-glow-2" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="8" />
+        </filter>
+        <filter id="category-ring-glow-3" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="16" />
         </filter>
       </defs>
       <g transform={`rotate(135 ${cx} ${cx})`}>
@@ -257,26 +263,33 @@ function CategoryRing({
 
         {!selected ? (
           <>
-            {/* Alone: l'intero anello viene sfocato in un colpo solo, così i
-                colori vicini si fondono davvero tra loro invece di avere
-                bordi netti tra un bagliore e l'altro. */}
-            <g filter="url(#category-ring-glow)">
-              {arcs.map((a) => (
-                <circle
-                  key={`glow-${a.id}`}
-                  cx={cx}
-                  cy={cx}
-                  r={r}
-                  fill="none"
-                  stroke={a.color}
-                  strokeWidth={stroke}
-                  strokeLinecap="butt"
-                  strokeDasharray={`${Math.max(0.01, a.len * shown)} ${c}`}
-                  strokeDashoffset={-a.start * shown}
-                  style={{ transition: ringTransition }}
-                />
-              ))}
-            </g>
+            {/* Alone: l'intero anello viene sfocato in un colpo solo (3 livelli
+                impilati, come l'anello home), così i colori vicini si fondono
+                davvero tra loro invece di avere bordi netti tra un bagliore
+                e l'altro. */}
+            {[
+              { filter: "url(#category-ring-glow-3)", opacity: 0.55 },
+              { filter: "url(#category-ring-glow-2)", opacity: 0.8 },
+              { filter: "url(#category-ring-glow-1)", opacity: 1 },
+            ].map((layer, li) => (
+              <g key={`halo-${li}`} filter={layer.filter} opacity={layer.opacity}>
+                {arcs.map((a) => (
+                  <circle
+                    key={`glow-${li}-${a.id}`}
+                    cx={cx}
+                    cy={cx}
+                    r={r}
+                    fill="none"
+                    stroke={a.color}
+                    strokeWidth={stroke}
+                    strokeLinecap="butt"
+                    strokeDasharray={`${Math.max(0.01, a.len * shown)} ${c}`}
+                    strokeDashoffset={-a.start * shown}
+                    style={{ transition: ringTransition }}
+                  />
+                ))}
+              </g>
+            ))}
             {/* Strato nitido sopra, senza filtro, per mantenere i colori leggibili */}
             <g>
               {arcs.map((a) => (
