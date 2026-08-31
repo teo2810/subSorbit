@@ -311,7 +311,9 @@ export function nextOccurrence(
 
 export function daysUntilRenewal(s: Subscription, from: Date = new Date()): number {
   const next = nextOccurrence(s.nextRenewal, s.frequency, from);
-  return Math.max(0, differenceInCalendarDays(next, startOfDay(from)));
+  const days = differenceInCalendarDays(next, startOfDay(from));
+  if (s.frequency === "once" && days < 0) return 9999;
+  return Math.max(0, days);
 }
 
 export function frequencyBand(freq: Frequency): number {
@@ -328,7 +330,9 @@ export function frequencyBand(freq: Frequency): number {
 }
 
 export function orbitUrgency(s: Subscription, from: Date = new Date()): number {
+  if (s.status !== "active") return 0;
   const days = daysUntilRenewal(s, from);
+  if (days >= 9000) return 0;
   const span =
     s.frequency === "weekly"
       ? 7
