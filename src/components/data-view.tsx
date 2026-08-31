@@ -276,22 +276,6 @@ function CategoryRing({
                 style={{ filter: glowFilter(a.color), transition: ringTransition }}
               />
             ))}
-            <circle
-              cx={cx + r}
-              cy={cx}
-              r={stroke / 2}
-              fill={arcs[0]?.color ?? "#22d3ee"}
-              style={{ filter: arcs[0] ? glowFilter(arcs[0].color) : undefined }}
-            />
-            <circle
-              cx={cx + r * Math.cos(1.5 * Math.PI * shown)}
-              cy={cx + r * Math.sin(1.5 * Math.PI * shown)}
-              r={stroke / 2}
-              fill={arcs[arcs.length - 1]?.color ?? "#22d3ee"}
-              style={{
-                filter: arcs.length ? glowFilter(arcs[arcs.length - 1]!.color) : undefined,
-              }}
-            />
           </>
         ) : (
           <>
