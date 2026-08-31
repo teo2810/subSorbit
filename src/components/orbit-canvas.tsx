@@ -94,6 +94,14 @@ function worldOf(radius: number, angle: number, inc: number, node: number) {
   return { x: x * cn - z1 * sn, y: y1, z: x * sn + z1 * cn };
 }
 
+function hexRgb(color: string): string {
+  const m = color.replace("#", "").trim();
+  if (m.length === 6 && /^[0-9a-fA-F]+$/.test(m)) {
+    return `${parseInt(m.slice(0, 2), 16)}, ${parseInt(m.slice(2, 4), 16)}, ${parseInt(m.slice(4, 6), 16)}`;
+  }
+  return "34, 211, 238";
+}
+
 function hash(n: number) {
   const x = Math.sin(n * 127.1) * 43758.5453;
   return x - Math.floor(x);
@@ -629,21 +637,24 @@ export function OrbitCanvas({
         }
 
         if (!b.paused && b.kind !== "trash") {
-          const u = Math.max(0, Math.min(1, b.urgency));
-          const beat = 0.5 + 0.5 * Math.sin(now * (0.0018 + u * 0.007));
-          const glow = 0.12 + u * 0.62 * beat;
-          const rad = b.pr * (1.35 + u * 0.85 + (sim.focusId === b.id ? 0.35 : 0));
-          const halo = ctx.createRadialGradient(b.px, b.py, b.pr * 0.55, b.px, b.py, rad);
-          const a = Math.round((40 + glow * 140) * (sim.focusId === b.id ? 1 : 0.85))
-            .toString(16)
-            .padStart(2, "0");
-          halo.addColorStop(0, `${b.color}00`);
-          halo.addColorStop(0.42, `${b.color}${a}`);
-          halo.addColorStop(1, `${b.color}00`);
-          ctx.fillStyle = halo;
+          const u = 0.28 + 0.72 * Math.max(0, Math.min(1, b.urgency));
+          const beat = 0.45 + 0.55 * Math.sin(now * (0.0024 + u * 0.01));
+          const rgb = hexRgb(b.color);
+          const rad = b.pr * (2.1 + u * 1.6 + beat * 0.35 + (sim.focusId === b.id ? 0.45 : 0));
+          const bloom = ctx.createRadialGradient(b.px, b.py, b.pr * 0.2, b.px, b.py, rad);
+          bloom.addColorStop(0, `rgba(255,255,255,${0.28 + u * 0.35 * beat})`);
+          bloom.addColorStop(0.22, `rgba(${rgb}, ${0.55 + u * 0.4 * beat})`);
+          bloom.addColorStop(0.55, `rgba(${rgb}, ${0.22 + u * 0.28})`);
+          bloom.addColorStop(1, `rgba(${rgb}, 0)`);
+          ctx.fillStyle = bloom;
           ctx.beginPath();
           ctx.arc(b.px, b.py, rad, 0, Math.PI * 2);
           ctx.fill();
+          ctx.strokeStyle = `rgba(${rgb}, ${0.35 + u * 0.55 * beat})`;
+          ctx.lineWidth = Math.max(1.4, b.pr * 0.16);
+          ctx.beginPath();
+          ctx.arc(b.px, b.py, b.pr * (1.18 + beat * 0.12 * u), 0, Math.PI * 2);
+          ctx.stroke();
         } else if (sim.focusId === b.id) {
           ctx.strokeStyle = "rgba(180,190,210,0.55)";
           ctx.lineWidth = 1.5;

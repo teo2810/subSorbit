@@ -175,8 +175,7 @@ export function DetailSheet({
               <button
                 type="button"
                 onClick={saveEdit}
-                className="glow-tap h-11 w-full rounded-2xl font-display text-sm font-semibold text-void"
-                style={{ background: brand.color }}
+                className="glow-tap h-11 w-full rounded-2xl bg-cyan font-display text-sm font-semibold text-void"
               >
                 Salva
               </button>
@@ -214,6 +213,7 @@ export function DetailSheet({
               <div className="relative mt-3 flex items-center justify-between gap-1.5">
                 <IconBtn
                   label="Modifica"
+                  tone="cyan"
                   onClick={() => {
                     setEdit(true);
                     setMore(true);
@@ -289,7 +289,7 @@ function IconBtn({
   onClick: () => void;
   label: string;
   children: React.ReactNode;
-  tone?: "warn" | "ok" | "bad";
+  tone?: "warn" | "ok" | "bad" | "cyan";
 }) {
   return (
     <button
@@ -299,6 +299,7 @@ function IconBtn({
       onClick={onClick}
       className={cn(
         "glow-tap flex size-11 flex-1 items-center justify-center rounded-2xl bg-white/8 text-fg",
+        tone === "cyan" && "bg-cyan text-void",
         tone === "warn" && "bg-warn/15 text-warn",
         tone === "ok" && "bg-ok/15 text-ok",
         tone === "bad" && "bg-bad/12 text-bad",

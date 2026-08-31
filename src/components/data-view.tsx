@@ -26,6 +26,11 @@ export function DataView({
 }) {
   const [sel, setSel] = useState<string | null>(null);
   const [period, setPeriod] = useState<SpendPeriod>("month");
+  useEffect(() => {
+    const onFlip = () => setPeriod((cur) => (cur === "month" ? "year" : "month"));
+    window.addEventListener("orbit-flip-period", onFlip);
+    return () => window.removeEventListener("orbit-flip-period", onFlip);
+  }, []);
   const slices = useMemo(
     () => spendByCategory(subscriptions, period),
     [subscriptions, period],
@@ -55,7 +60,7 @@ export function DataView({
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pb-36">
         <ScreenHeader onSettings={onSettings} sticky />
         <div className="px-5">
-        <div className="relative mx-auto mt-2 flex h-[320px] w-full max-w-[320px] items-center justify-center">
+        <div data-period-swipe className="relative mx-auto mt-2 flex h-[320px] w-full max-w-[320px] items-center justify-center">
           <ChartBackdrop />
           <div className="relative h-[236px] w-[236px]">
           <CategoryRing
@@ -85,7 +90,7 @@ export function DataView({
         </div>
 
         <div className="mt-2 flex justify-center">
-          <div className="pill-in flex rounded-full bg-white/6 p-1">
+          <div data-period-swipe className="pill-in flex rounded-full bg-white/6 p-1">
             <Chip active={period === "month"} onClick={() => setPeriod("month")}>
               Mese
             </Chip>

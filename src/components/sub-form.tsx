@@ -207,8 +207,7 @@ export function SubForm({
           <button
             type="button"
             onClick={save}
-            className="glow-tap mt-1 h-11 w-full rounded-2xl font-display text-sm font-semibold text-void"
-            style={{ background: tint }}
+            className="glow-tap mt-1 h-11 w-full rounded-2xl bg-cyan font-display text-sm font-semibold text-void"
           >
             Conferma
           </button>

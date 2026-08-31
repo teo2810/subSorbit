@@ -97,10 +97,7 @@ export function AppShell() {
       const target = e.target as HTMLElement | null;
       if (target?.closest("input,textarea,select,[data-no-swipe]")) return;
       const tabNow = tabRef.current;
-      if (tabNow === "orbit" && !target?.closest("[data-period-swipe]")) {
-        const x = t.clientX;
-        if (x > 36 && x < window.innerWidth - 36) return;
-      }
+      if (tabNow === "orbit") return;
       st.x = t.clientX;
       st.y = t.clientY;
       st.on = true;
@@ -325,22 +322,35 @@ function OrbitIconStrip({
   onPick: (id: string) => void;
 }) {
   const items = subscriptions.filter((s) => filter === "all" || s.status === filter);
+  const ids = items.map((s) => s.id).join(",");
   const scroller = useRef<HTMLDivElement>(null);
   const unit = useRef(0);
+  const jumping = useRef(false);
+  const COPIES = 5;
 
   useEffect(() => {
     const el = scroller.current;
     if (!el || items.length === 0) return;
     const measure = () => {
-      unit.current = el.scrollWidth / 3;
-      if (unit.current > 0 && el.scrollLeft < 8) el.scrollLeft = unit.current;
+      unit.current = el.scrollWidth / COPIES;
+      if (unit.current <= 0) return;
+      jumping.current = true;
+      el.scrollLeft = unit.current * 2;
+      jumping.current = false;
     };
-    measure();
     const onScroll = () => {
+      if (jumping.current) return;
       const w = unit.current;
-      if (w <= 0) return;
-      if (el.scrollLeft <= w * 0.2) el.scrollLeft += w;
-      else if (el.scrollLeft >= w * 2.2) el.scrollLeft -= w;
+      if (w < 8) return;
+      if (el.scrollLeft < w * 1.05) {
+        jumping.current = true;
+        el.scrollLeft += w;
+        jumping.current = false;
+      } else if (el.scrollLeft > w * (COPIES - 2.05)) {
+        jumping.current = true;
+        el.scrollLeft -= w;
+        jumping.current = false;
+      }
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     const ro = new ResizeObserver(measure);
@@ -350,10 +360,10 @@ function OrbitIconStrip({
       el.removeEventListener("scroll", onScroll);
       ro.disconnect();
     };
-  }, [items]);
+  }, [ids, items.length]);
 
   if (!items.length) return null;
-  const loop = [...items, ...items, ...items];
+  const loop = Array.from({ length: COPIES }, () => items).flat();
   return (
     <div
       ref={scroller}

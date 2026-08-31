@@ -61,6 +61,12 @@ export function HomeView({
     [subscriptions],
   );
 
+  useEffect(() => {
+    const onFlip = () => setPeriod((cur) => (cur === "month" ? "year" : "month"));
+    window.addEventListener("orbit-flip-period", onFlip);
+    return () => window.removeEventListener("orbit-flip-period", onFlip);
+  }, []);
+
   const pct = Math.round(spend.percent * 100);
   const items = lane === "subs" ? recurring : once;
 
@@ -70,7 +76,7 @@ export function HomeView({
         <ScreenHeader onSettings={onSettings} sticky />
 
         <div className="px-5">
-        <div className="relative mx-auto mt-2 flex h-[320px] w-full max-w-[320px] items-center justify-center">
+        <div data-period-swipe className="relative mx-auto mt-2 flex h-[320px] w-full max-w-[320px] items-center justify-center">
           <ChartBackdrop />
           <div className="relative h-[236px] w-[236px]">
           <SpendRing percent={spend.percent} active={active} />
@@ -91,7 +97,7 @@ export function HomeView({
         </div>
 
         <div className="mt-2 flex justify-center">
-          <div className="pill-in flex rounded-full bg-white/6 p-1">
+          <div data-period-swipe className="pill-in flex rounded-full bg-white/6 p-1">
             <Chip active={period === "month"} onClick={() => setPeriod("month")}>
               Mese
             </Chip>
