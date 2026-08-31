@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ScreenHeader } from "./orbit-mark";
 import { ChartBackdrop } from "./chart-backdrop";
 import { BrandBadge } from "@/lib/logos";
@@ -161,120 +161,34 @@ function CategoryRing({
   onSelect: (id: string | null) => void;
   active: boolean;
 }) {
-  const size = 316;
+  const size = 236;
   const stroke = 14;
-  const r = 101;
+  const r = (size - stroke) / 2 - 4;
+  const c = 2 * Math.PI * r;
+  const track = c * 0.75;
   const cx = size / 2;
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [grow, setGrow] = useState(0);
+  const [shown, setShown] = useState(0);
 
   useEffect(() => {
     if (!active) {
-      setGrow(0);
+      setShown(0);
       return;
     }
-    setGrow(0);
-    const t = window.setTimeout(() => setGrow(1), 40);
+    setShown(0);
+    const t = window.setTimeout(() => setShown(1), 80);
     return () => window.clearTimeout(t);
   }, [active, slices]);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = size * dpr;
-    canvas.height = size * dpr;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, size, size);
+  const segs: { id: string; color: string; start: number; len: number }[] = [];
+  let acc = 0;
+  for (const s of slices) {
+    const len = (s.value / total) * track * shown;
+    segs.push({ id: s.id, color: s.color, start: acc * shown, len });
+    acc += (s.value / total) * track;
+  }
 
-    const start = (135 * Math.PI) / 180;
-    const full = (270 * Math.PI) / 180;
-    const sweep = full * Math.max(0.001, grow);
-
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "rgba(165,243,252,0.16)";
-    ctx.lineWidth = stroke;
-    ctx.beginPath();
-    ctx.arc(cx, cx, r, start, start + full);
-    ctx.stroke();
-
-    const tint = (s: { id: string; color: string }) =>
-      selected && selected !== s.id ? fade(s.color, 0.28) : s.color;
-
-    const pal = slices.map((s) => hexRgb(tint(s)) ?? hexRgb(s.color) ?? [34, 211, 238] as [number, number, number]);
-    const stops: { t: number; rgb: [number, number, number] }[] = [];
-    let acc = 0;
-    slices.forEach((s, i) => {
-      const share = s.value / total;
-      const rgb = pal[i]!;
-      const nextShare = slices[i + 1] ? slices[i + 1]!.value / total : 0;
-      const blend = i < slices.length - 1 ? Math.min(0.09, share * 0.42, nextShare * 0.42) : 0;
-      if (i === 0) stops.push({ t: 0, rgb });
-      stops.push({ t: acc + blend, rgb });
-      stops.push({ t: acc + share - blend, rgb });
-      acc += share;
-      if (i === slices.length - 1) stops.push({ t: 1, rgb });
-    });
-    if (!stops.length) stops.push({ t: 0, rgb: [34, 211, 238] }, { t: 1, rgb: [34, 211, 238] });
-
-    const colorAt = (p: number): string => {
-      const x = Math.max(0, Math.min(1, p));
-      let i = 0;
-      while (i < stops.length - 1 && stops[i + 1]!.t < x) i += 1;
-      const a = stops[i]!;
-      const b = stops[Math.min(i + 1, stops.length - 1)]!;
-      const span = Math.max(0.0001, b.t - a.t);
-      const u = Math.max(0, Math.min(1, (x - a.t) / span));
-      const m = (q: number, w: number) => Math.round(q + (w - q) * u);
-      return `rgb(${m(a.rgb[0], b.rgb[0])},${m(a.rgb[1], b.rgb[1])},${m(a.rgb[2], b.rgb[2])})`;
-    };
-
-    const drawSweep = (width: number, blur: number, alpha: number) => {
-      ctx.save();
-      ctx.lineCap = "butt";
-      ctx.lineWidth = width;
-      ctx.globalAlpha = alpha;
-      ctx.filter = blur ? `blur(${blur}px)` : "none";
-      const steps = 96;
-      for (let i = 0; i < steps; i++) {
-        const a0 = start + (sweep * i) / steps;
-        const a1 = start + (sweep * (i + 1)) / steps;
-        ctx.beginPath();
-        ctx.strokeStyle = colorAt(i / steps);
-        ctx.arc(cx, cx, r, a0, a1);
-        ctx.stroke();
-      }
-      ctx.restore();
-    };
-
-    drawSweep(22, 18, 0.72);
-    drawSweep(18, 9, 0.5);
-    drawSweep(stroke, 0, 1);
-
-    const cap = (ang: number, col: string) => {
-      const x = cx + Math.cos(ang) * r;
-      const y = cx + Math.sin(ang) * r;
-      ctx.save();
-      ctx.filter = "blur(8px)";
-      ctx.globalAlpha = 0.55;
-      ctx.fillStyle = col;
-      ctx.beginPath();
-      ctx.arc(x, y, stroke * 0.85, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-      ctx.fillStyle = col;
-      ctx.beginPath();
-      ctx.arc(x, y, stroke / 2, 0, Math.PI * 2);
-      ctx.fill();
-    };
-    cap(start, colorAt(0));
-    cap(start + sweep, colorAt(0.999));
-  }, [slices, selected, grow, total]);
-
-  const hit = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const hit = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
@@ -284,15 +198,15 @@ function CategoryRing({
     if (Math.abs(dist - rr) > 22 * scale) return;
     let ang = Math.atan2(y, x);
     if (ang < 0) ang += Math.PI * 2;
-    const start = (135 * Math.PI) / 180;
-    let rel = ang - start;
+    const startA = (135 * Math.PI) / 180;
+    let rel = ang - startA;
     if (rel < 0) rel += Math.PI * 2;
     if (rel > (270 * Math.PI) / 180) return;
     const p = rel / ((270 * Math.PI) / 180);
-    let acc = 0;
+    let sum = 0;
     for (const s of slices) {
-      acc += s.value / total;
-      if (p <= acc) {
+      sum += s.value / total;
+      if (p <= sum) {
         onSelect(selected === s.id ? null : s.id);
         return;
       }
@@ -300,35 +214,55 @@ function CategoryRing({
   };
 
   return (
-    <canvas
-      ref={canvasRef}
+    <svg
       width={size}
       height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      overflow="visible"
       onClick={hit}
-      className="absolute left-1/2 top-1/2 h-[316px] w-[316px] -translate-x-1/2 -translate-y-1/2 cursor-pointer"
-    />
+      className="absolute inset-0 cursor-pointer"
+      aria-hidden
+    >
+      <g transform={`rotate(135 ${cx} ${cx})`}>
+        <circle
+          cx={cx}
+          cy={cx}
+          r={r}
+          fill="none"
+          stroke="rgba(165,243,252,0.18)"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={`${track} ${c}`}
+        />
+        {segs.map((s, i) => {
+          const dim = Boolean(selected && selected !== s.id);
+          const hex = s.color;
+          return (
+            <circle
+              key={s.id}
+              cx={cx}
+              cy={cx}
+              r={r}
+              fill="none"
+              stroke={hex}
+              strokeWidth={stroke}
+              strokeLinecap={i === 0 || i === segs.length - 1 ? "round" : "butt"}
+              strokeDasharray={`${Math.max(0.01, s.len + 0.8)} ${c}`}
+              strokeDashoffset={-s.start}
+              style={{
+                opacity: dim ? 0.22 : 1,
+                filter: dim
+                  ? "none"
+                  : `drop-shadow(0 0 6px ${hex}) drop-shadow(0 0 16px ${hex}cc) drop-shadow(0 0 28px ${hex}66)`,
+                transition:
+                  "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease",
+              }}
+            />
+          );
+        })}
+      </g>
+    </svg>
   );
-}
-
-function fade(hex: string, a: number) {
-  const n = hex.replace("#", "");
-  if (n.length !== 6) return hex;
-  const r = parseInt(n.slice(0, 2), 16);
-  const g = parseInt(n.slice(2, 4), 16);
-  const b = parseInt(n.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${a})`;
-}
-
-function hexRgb(c: string): [number, number, number] | null {
-  if (c[0] === "#" && c.length === 7) {
-    return [
-      parseInt(c.slice(1, 3), 16),
-      parseInt(c.slice(3, 5), 16),
-      parseInt(c.slice(5, 7), 16),
-    ];
-  }
-  const m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
-  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
 }
 
 function Chip({
