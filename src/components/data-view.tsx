@@ -261,7 +261,7 @@ function CategoryRing({
                 3 drop-shadow impilati (6/16/32px), applicata diretta a ogni
                 arco. Niente più approssimazioni: è lo stesso filtro, stessi
                 numeri, solo con colori diversi per categoria. */}
-            {arcs.map((a) => (
+            {arcs.map((a, i) => (
               <circle
                 key={`arc-${a.id}`}
                 cx={cx}
@@ -270,7 +270,7 @@ function CategoryRing({
                 fill="none"
                 stroke={a.color}
                 strokeWidth={stroke}
-                strokeLinecap="butt"
+                strokeLinecap={i === 0 || i === arcs.length - 1 ? "round" : "butt"}
                 strokeDasharray={`${Math.max(0.01, a.len * shown)} ${c}`}
                 strokeDashoffset={-a.start * shown}
                 style={{ filter: glowFilter(a.color), transition: ringTransition }}
