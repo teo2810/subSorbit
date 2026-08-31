@@ -204,13 +204,19 @@ function CategoryRing({
     const tint = (s: { id: string; color: string }) =>
       selected && selected !== s.id ? fade(s.color, 0.28) : s.color;
 
+    const pal = slices.map((s) => hexRgb(tint(s)) ?? hexRgb(s.color) ?? [34, 211, 238] as [number, number, number]);
     const stops: { t: number; rgb: [number, number, number] }[] = [];
     let acc = 0;
-    slices.forEach((s) => {
-      const rgb = hexRgb(tint(s)) ?? hexRgb(s.color) ?? [34, 211, 238];
-      stops.push({ t: acc, rgb });
-      acc += s.value / total;
-      stops.push({ t: acc, rgb });
+    slices.forEach((s, i) => {
+      const share = s.value / total;
+      const rgb = pal[i]!;
+      const nextShare = slices[i + 1] ? slices[i + 1]!.value / total : 0;
+      const blend = i < slices.length - 1 ? Math.min(0.09, share * 0.42, nextShare * 0.42) : 0;
+      if (i === 0) stops.push({ t: 0, rgb });
+      stops.push({ t: acc + blend, rgb });
+      stops.push({ t: acc + share - blend, rgb });
+      acc += share;
+      if (i === slices.length - 1) stops.push({ t: 1, rgb });
     });
     if (!stops.length) stops.push({ t: 0, rgb: [34, 211, 238] }, { t: 1, rgb: [34, 211, 238] });
 
@@ -232,7 +238,7 @@ function CategoryRing({
       ctx.lineWidth = width;
       ctx.globalAlpha = alpha;
       ctx.filter = blur ? `blur(${blur}px)` : "none";
-      const steps = 72;
+      const steps = 96;
       for (let i = 0; i < steps; i++) {
         const a0 = start + (sweep * i) / steps;
         const a1 = start + (sweep * (i + 1)) / steps;
@@ -244,14 +250,24 @@ function CategoryRing({
       ctx.restore();
     };
 
-    drawSweep(18, 14, 0.55);
-    drawSweep(16, 6, 0.4);
+    drawSweep(22, 18, 0.72);
+    drawSweep(18, 9, 0.5);
     drawSweep(stroke, 0, 1);
 
     const cap = (ang: number, col: string) => {
+      const x = cx + Math.cos(ang) * r;
+      const y = cx + Math.sin(ang) * r;
+      ctx.save();
+      ctx.filter = "blur(8px)";
+      ctx.globalAlpha = 0.55;
       ctx.fillStyle = col;
       ctx.beginPath();
-      ctx.arc(cx + Math.cos(ang) * r, cx + Math.sin(ang) * r, stroke / 2, 0, Math.PI * 2);
+      ctx.arc(x, y, stroke * 0.85, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(x, y, stroke / 2, 0, Math.PI * 2);
       ctx.fill();
     };
     cap(start, colorAt(0));
