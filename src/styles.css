@@ -302,3 +302,7 @@ input[type="date"].glass-field::-webkit-calendar-picker-indicator {
     animation: none;
   }
 }
+
+.icon-strip-scroll::-webkit-scrollbar {
+  display: none;
+}
