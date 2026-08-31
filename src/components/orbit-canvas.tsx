@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { activeMonthlyTotal, classify, monthlyEquivalent, orbitUrgency } from "@/lib/domain";
+import { activeMonthlyTotal, classify, daysUntilRenewal, monthlyEquivalent, orbitUrgency } from "@/lib/domain";
 import { formatEuroCompact } from "@/lib/format";
 import { drawBrand, getBrand, preloadBrandIcons } from "@/lib/logos";
 import type { StatusFilter, Subscription } from "@/lib/types";
@@ -28,6 +28,7 @@ interface Body {
   node: number;
   omega: number;
   urgency: number;
+  days: number;
   px: number;
   py: number;
   pz: number;
@@ -184,6 +185,7 @@ function packBand(
         node: base.node,
         omega: RING_OMEGA,
         urgency: it.s.status === "cancelled" ? 0 : orbitUrgency(it.s),
+        days: it.s.status === "cancelled" ? 9999 : daysUntilRenewal(it.s),
         px: 0,
         py: 0,
         pz: 0,
@@ -684,6 +686,12 @@ export function OrbitCanvas({
           ctx.textBaseline = "top";
           ctx.fillStyle = "rgba(238,242,255,0.92)";
           ctx.fillText(b.name, b.px, b.py + b.pr + 5);
+        } else if (!b.paused && b.kind !== "trash" && b.days <= 14) {
+          ctx.font = `700 ${Math.max(9, Math.min(11, b.pr * 0.55))}px Outfit, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          ctx.fillStyle = b.days <= 3 ? "rgba(34,211,238,0.95)" : "rgba(238,242,255,0.75)";
+          ctx.fillText(b.days === 0 ? "oggi" : `${b.days}g`, b.px, b.py + b.pr + 4);
         }
       };
 

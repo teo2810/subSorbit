@@ -13,7 +13,7 @@ import { ScreenHeader } from "./orbit-mark";
 import { SettingsSheet } from "./settings-sheet";
 import { SubForm } from "./sub-form";
 import { cn } from "@/lib/cn";
-import { activeMonthlyTotal } from "@/lib/domain";
+import { activeMonthlyTotal, daysUntilRenewal } from "@/lib/domain";
 import { formatEuroCompact } from "@/lib/format";
 import { BrandBadge, preloadBrandIcons } from "@/lib/logos";
 import { useAppStore, type OrbitSpeed } from "@/lib/store";
@@ -321,7 +321,15 @@ function OrbitIconStrip({
   selectedId: string | null;
   onPick: (id: string) => void;
 }) {
-  const items = subscriptions.filter((s) => filter === "all" || s.status === filter);
+  const items = subscriptions
+    .filter((s) => filter === "all" || s.status === filter)
+    .slice()
+    .sort((a, b) => {
+      const pa = a.status === "cancelled" ? 1 : a.status === "paused" ? 0.5 : 0;
+      const pb = b.status === "cancelled" ? 1 : b.status === "paused" ? 0.5 : 0;
+      if (pa !== pb) return pa - pb;
+      return daysUntilRenewal(a) - daysUntilRenewal(b);
+    });
   const ids = items.map((s) => s.id).join(",");
   const scroller = useRef<HTMLDivElement>(null);
   const unit = useRef(0);
@@ -379,6 +387,7 @@ function OrbitIconStrip({
       <div className="flex w-max items-center gap-2 px-3">
         {loop.map((s, i) => {
           const on = selectedId === s.id;
+          const days = s.status === "cancelled" ? null : daysUntilRenewal(s);
           return (
             <button
               key={`${s.id}-${i}`}
@@ -395,6 +404,11 @@ function OrbitIconStrip({
               )}
             >
               <BrandBadge brandKey={s.brandKey} name={s.name} size={32} />
+              {days !== null && days <= 7 ? (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-cyan px-1 font-display text-[8px] font-semibold leading-3 text-void">
+                  {days === 0 ? "oggi" : `${days}g`}
+                </span>
+              ) : null}
             </button>
           );
         })}

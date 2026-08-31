@@ -259,10 +259,9 @@ function CategoryRing({
           strokeLinecap="round"
           strokeDasharray={`${track} ${c}`}
         />
-        {segs.map((s, i) => {
+        {segs.map((s) => {
           const dim = Boolean(selected && selected !== s.slice);
           const hex = s.color;
-          const ends = i === 0 || i === segs.length - 1;
           return (
             <circle
               key={s.id}
@@ -272,7 +271,7 @@ function CategoryRing({
               fill="none"
               stroke={hex}
               strokeWidth={stroke}
-              strokeLinecap={ends ? "round" : "butt"}
+              strokeLinecap="butt"
               strokeDasharray={`${Math.max(0.01, s.len)} ${c}`}
               strokeDashoffset={-s.start}
               style={{
@@ -286,6 +285,22 @@ function CategoryRing({
             />
           );
         })}
+        <circle
+          cx={cx + r}
+          cy={cx}
+          r={stroke / 2}
+          fill={slices[0] && selected && selected !== slices[0].id ? "rgba(255,255,255,0.2)" : slices[0]?.color ?? "#22d3ee"}
+        />
+        <circle
+          cx={cx + r * Math.cos(1.5 * Math.PI * shown)}
+          cy={cx + r * Math.sin(1.5 * Math.PI * shown)}
+          r={stroke / 2}
+          fill={
+            slices.length && selected && selected !== slices[slices.length - 1]!.id
+              ? "rgba(255,255,255,0.2)"
+              : slices[slices.length - 1]?.color ?? "#22d3ee"
+          }
+        />
       </g>
     </svg>
   );

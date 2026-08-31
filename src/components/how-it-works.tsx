@@ -26,7 +26,7 @@ const RULES = [
   {
     icon: Sparkles,
     title: "Più brilla, più è vicino alla scadenza",
-    text: "Il bagliore e il pulse crescono verso il rinnovo. La velocità dell’orbita la scegli tu (0.5× / 1× / 2×).",
+    text: "Chi scade prima brilla di più. Sotto il pianeta, entro 14 giorni, compare “oggi” o “3g”. In barra le icone sono in ordine di scadenza.",
   },
   {
     icon: Compass,
