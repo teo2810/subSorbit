@@ -80,11 +80,16 @@ export function DataView({
                   ? "Spesa di questo mese"
                   : "Spesa di quest’anno"}
             </p>
-            {selected && total > 0 ? (
-              <p className="mt-1.5 text-[11px] text-cyan">
-                {Math.round((selected.value / total) * 100)}% della spesa
-              </p>
-            ) : null}
+            <p
+              className={cn(
+                "mt-1.5 text-[11px] text-cyan",
+                !(selected && total > 0) && "invisible",
+              )}
+            >
+              {selected && total > 0
+                ? `${Math.round((selected.value / total) * 100)}% della spesa`
+                : "\u00A0"}
+            </p>
           </div>
           </div>
         </div>
@@ -238,17 +243,6 @@ function CategoryRing({
       className="absolute inset-0 cursor-pointer"
       aria-hidden
     >
-      <defs>
-        <filter id="category-ring-glow-1" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="3" />
-        </filter>
-        <filter id="category-ring-glow-2" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="8" />
-        </filter>
-        <filter id="category-ring-glow-3" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="16" />
-        </filter>
-      </defs>
       <g transform={`rotate(135 ${cx} ${cx})`}>
         <circle
           cx={cx}
@@ -263,71 +257,47 @@ function CategoryRing({
 
         {!selected ? (
           <>
-            {/* Alone: l'intero anello viene sfocato in un colpo solo (3 livelli
-                impilati, come l'anello home), così i colori vicini si fondono
-                davvero tra loro invece di avere bordi netti tra un bagliore
-                e l'altro. */}
-            {[
-              { filter: "url(#category-ring-glow-3)", opacity: 0.75 },
-              { filter: "url(#category-ring-glow-2)", opacity: 0.9 },
-              { filter: "url(#category-ring-glow-1)", opacity: 1 },
-            ].map((layer, li) => (
-              <g
-                key={`halo-${li}`}
-                filter={layer.filter}
-                opacity={layer.opacity}
-                style={{ mixBlendMode: "screen" }}
-              >
-                {arcs.map((a) => (
-                  <circle
-                    key={`glow-${li}-${a.id}`}
-                    cx={cx}
-                    cy={cx}
-                    r={r}
-                    fill="none"
-                    stroke={a.color}
-                    strokeWidth={stroke}
-                    strokeLinecap="butt"
-                    strokeDasharray={`${Math.max(0.01, a.len * shown)} ${c}`}
-                    strokeDashoffset={-a.start * shown}
-                    style={{ transition: ringTransition }}
-                  />
-                ))}
-              </g>
+            {/* Stessa identica ricetta dell'anello home: colore pieno +
+                3 drop-shadow impilati (6/16/32px), applicata diretta a ogni
+                arco. Niente più approssimazioni: è lo stesso filtro, stessi
+                numeri, solo con colori diversi per categoria. */}
+            {arcs.map((a) => (
+              <circle
+                key={`arc-${a.id}`}
+                cx={cx}
+                cy={cx}
+                r={r}
+                fill="none"
+                stroke={a.color}
+                strokeWidth={stroke}
+                strokeLinecap="butt"
+                strokeDasharray={`${Math.max(0.01, a.len * shown)} ${c}`}
+                strokeDashoffset={-a.start * shown}
+                style={{ filter: glowFilter(a.color), transition: ringTransition }}
+              />
             ))}
-            {/* Strato nitido sopra, senza filtro, per mantenere i colori leggibili */}
-            <g>
-              {arcs.map((a) => (
-                <circle
-                  key={`solid-${a.id}`}
-                  cx={cx}
-                  cy={cx}
-                  r={r}
-                  fill="none"
-                  stroke={a.color}
-                  strokeWidth={stroke}
-                  strokeLinecap="butt"
-                  strokeDasharray={`${Math.max(0.01, a.len * shown)} ${c}`}
-                  strokeDashoffset={-a.start * shown}
-                  style={{ transition: ringTransition }}
-                />
-              ))}
-            </g>
-            <circle cx={cx + r} cy={cx} r={stroke / 2} fill={arcs[0]?.color ?? "#22d3ee"} />
+            <circle
+              cx={cx + r}
+              cy={cx}
+              r={stroke / 2}
+              fill={arcs[0]?.color ?? "#22d3ee"}
+              style={{ filter: arcs[0] ? glowFilter(arcs[0].color) : undefined }}
+            />
             <circle
               cx={cx + r * Math.cos(1.5 * Math.PI * shown)}
               cy={cx + r * Math.sin(1.5 * Math.PI * shown)}
               r={stroke / 2}
               fill={arcs[arcs.length - 1]?.color ?? "#22d3ee"}
+              style={{
+                filter: arcs.length ? glowFilter(arcs[arcs.length - 1]!.color) : undefined,
+              }}
             />
           </>
         ) : (
           <>
-            {/* Nessun anello colorato di sfondo: da selezionati il contesto
-                è la sola traccia neutra già disegnata sopra, così non
-                restano visibili le micro-categorie "gonfiate" al minimo. */}
-            {/* Arco isolato con la stessa identica ricetta dell'anello ciano
-                della home: colore pieno + 3 drop-shadow impilati. */}
+            {/* Da selezionati: nessun anello colorato di sfondo (solo la
+                traccia neutra già disegnata sopra), e l'arco isolato con la
+                stessa ricetta dell'home. */}
             {activeArc ? (
               <circle
                 cx={cx}
@@ -339,14 +309,7 @@ function CategoryRing({
                 strokeLinecap="round"
                 strokeDasharray={`${activeArc.len} ${c}`}
                 strokeDashoffset={-activeArc.start}
-                style={{
-                  filter: [
-                    `drop-shadow(0 0 6px ${hexAlpha(activeArc.color, "ff")})`,
-                    `drop-shadow(0 0 16px ${hexAlpha(activeArc.color, "cc")})`,
-                    `drop-shadow(0 0 32px ${hexAlpha(activeArc.color, "73")})`,
-                  ].join(" "),
-                  transition: ringTransition,
-                }}
+                style={{ filter: glowFilter(activeArc.color), transition: ringTransition }}
               />
             ) : null}
           </>
@@ -354,6 +317,14 @@ function CategoryRing({
       </g>
     </svg>
   );
+}
+
+function glowFilter(hex: string): string {
+  return [
+    `drop-shadow(0 0 6px ${hexAlpha(hex, "ff")})`,
+    `drop-shadow(0 0 16px ${hexAlpha(hex, "cc")})`,
+    `drop-shadow(0 0 32px ${hexAlpha(hex, "73")})`,
+  ].join(" ");
 }
 
 function hexAlpha(hex: string, alphaHex: string): string {
