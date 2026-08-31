@@ -181,9 +181,10 @@ export function computePeriodSpend(
     if (share <= 0) continue;
     due += share;
     count += 1;
-    const inPeriod = occurrencesInRange(s, start, end);
-    if (inPeriod.length === 0) paid += share;
-    else if (inPeriod.some((d) => !isAfter(startOfDay(d), today))) paid += share;
+    const billed = occurrencesInRange(s, start, end).some(
+      (d) => !isAfter(startOfDay(d), today),
+    );
+    if (billed) paid += share;
   }
   return {
     period,
