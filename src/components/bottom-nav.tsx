@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { CalendarDays, House, Orbit, PieChart, Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { TabId } from "@/lib/types";
@@ -19,10 +19,32 @@ export function BottomNav({
   onTab: (t: TabId) => void;
   onAdd: () => void;
 }) {
+  useEffect(() => {
+    const pin = () => {
+      const vv = window.visualViewport;
+      const inset = vv
+        ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+        : 0;
+      document.documentElement.style.setProperty("--nav-shift", `${inset}px`);
+    };
+    pin();
+    window.visualViewport?.addEventListener("resize", pin);
+    window.visualViewport?.addEventListener("scroll", pin);
+    window.addEventListener("resize", pin);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", pin);
+      window.visualViewport?.removeEventListener("scroll", pin);
+      window.removeEventListener("resize", pin);
+    };
+  }, []);
+
   return (
     <nav
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-3"
-      style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}
+      className="pointer-events-none fixed inset-x-0 z-40 px-3"
+      style={{
+        bottom: "var(--nav-shift, 0px)",
+        paddingBottom: "max(10px, env(safe-area-inset-bottom))",
+      }}
     >
       <div className="pointer-events-auto relative mx-auto flex max-w-[480px] items-end justify-between gap-1 rounded-xl px-3 pb-2 pt-2 glass">
         <NavBtn

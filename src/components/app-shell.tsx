@@ -151,7 +151,7 @@ export function AppShell() {
   return (
     <div
       ref={pageRef}
-      className="relative mx-auto flex h-full w-full max-w-full flex-col overflow-hidden text-fg overscroll-none"
+      className="relative mx-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-full flex-col overflow-hidden text-fg overscroll-none"
     >
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <div className="relative h-full w-full overflow-hidden">
@@ -387,7 +387,7 @@ function OrbitIconStrip({
       <div className="flex w-max items-center gap-2 px-3">
         {loop.map((s, i) => {
           const on = selectedId === s.id;
-          const days = s.status === "cancelled" ? null : daysUntilRenewal(s);
+          const days = s.status === "active" ? daysUntilRenewal(s) : null;
           return (
             <button
               key={`${s.id}-${i}`}
@@ -404,7 +404,7 @@ function OrbitIconStrip({
               )}
             >
               <BrandBadge brandKey={s.brandKey} name={s.name} size={32} />
-              {days !== null && days <= 7 ? (
+              {days !== null && days <= 7 && days < 9000 ? (
                 <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-cyan px-1 font-display text-[8px] font-semibold leading-3 text-void">
                   {days === 0 ? "oggi" : `${days}g`}
                 </span>

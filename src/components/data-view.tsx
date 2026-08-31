@@ -180,13 +180,22 @@ function CategoryRing({
     return () => window.clearTimeout(t);
   }, [active, slices]);
 
+  const minL = 12;
+  const boosted = slices.map((s) => {
+    const raw = (s.value / total) * track;
+    return raw > 0 ? Math.max(raw, minL) : 0;
+  });
+  const boostSum = boosted.reduce((a, n) => a + n, 0) || 1;
+  const lens = boosted.map((n) => (n / boostSum) * track);
+
   const segs: { id: string; slice: string; color: string; start: number; len: number; glow: boolean }[] = [];
   let acc = 0;
   slices.forEach((s, i) => {
-    const raw = (s.value / total) * track;
+    const raw = lens[i] ?? 0;
     const next = slices[i + 1];
-    const blend = next ? Math.min(raw, (next.value / total) * track) * 0.5 : 0;
-    const solid = Math.max(0.2, raw - blend);
+    const nextLen = lens[i + 1] ?? 0;
+    const blend = next && raw > 14 && nextLen > 14 ? Math.min(raw, nextLen) * 0.32 : 0;
+    const solid = Math.max(0.8, raw - blend);
     segs.push({
       id: `${s.id}-s`,
       slice: s.id,
@@ -196,8 +205,8 @@ function CategoryRing({
       glow: true,
     });
     acc += solid;
-    if (next && blend > 0.4) {
-      const steps = 8;
+    if (next && blend > 0.6) {
+      const steps = 7;
       for (let k = 1; k <= steps; k++) {
         const t = k / (steps + 1);
         segs.push({

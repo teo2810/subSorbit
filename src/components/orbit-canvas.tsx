@@ -185,7 +185,7 @@ function packBand(
         node: base.node,
         omega: RING_OMEGA,
         urgency: it.s.status === "cancelled" ? 0 : orbitUrgency(it.s),
-        days: it.s.status === "cancelled" ? 9999 : daysUntilRenewal(it.s),
+        days: it.s.status === "active" ? daysUntilRenewal(it.s) : 9999,
         px: 0,
         py: 0,
         pz: 0,
