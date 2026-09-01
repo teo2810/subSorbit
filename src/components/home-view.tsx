@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScreenHeader } from "./orbit-mark";
 import { SubCard } from "./sub-card";
 import { ChartBackdrop } from "./chart-backdrop";
@@ -152,14 +152,25 @@ function SpendRing({ percent, active }: { percent: number; active: boolean }) {
   const c = 2 * Math.PI * r;
   const track = c * 0.75;
   const [shown, setShown] = useState(0);
+  const shownNow = useRef(0);
+  shownNow.current = shown;
   useEffect(() => {
     if (!active) {
       setShown(0);
       return;
     }
-    setShown(0);
-    const t = window.setTimeout(() => setShown(percent), 80);
-    return () => window.clearTimeout(t);
+    const from = shownNow.current;
+    const to = percent;
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / 820);
+      const e = 1 - (1 - p) ** 3;
+      setShown(from + (to - from) * e);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [percent, active]);
   const fill = track * Math.min(1, Math.max(0, shown));
   const cx = size / 2;

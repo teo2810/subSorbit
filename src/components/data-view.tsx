@@ -180,10 +180,10 @@ function CategoryRing({
       setShown(0);
       return;
     }
-    setShown(0);
+    if (shown >= 1) return;
     const t = window.setTimeout(() => setShown(1), 80);
     return () => window.clearTimeout(t);
-  }, [active, slices]);
+  }, [active, shown]);
 
   const minL = 12;
   const boosted = slices.map((s) => {
@@ -290,7 +290,8 @@ function CategoryRing({
             style={{
               opacity: selected ? 0.22 : 1,
               filter: selected ? "none" : glowFilter(a.color),
-              transition: "opacity 380ms ease, filter 380ms ease",
+              transition:
+                "stroke-dasharray 820ms cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 820ms cubic-bezier(0.22, 1, 0.36, 1), opacity 380ms ease, filter 380ms ease",
             }}
           />
         ))}
