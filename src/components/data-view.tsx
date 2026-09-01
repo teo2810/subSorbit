@@ -152,6 +152,25 @@ export function DataView({
   );
 }
 
+function layoutArcs(
+  slices: { id: string; value: number; color: string }[],
+  track: number,
+) {
+  const total = slices.reduce((a, s) => a + s.value, 0) || 1;
+  const raw = slices.map((s) => (s.value / total) * track);
+  const boosted = raw.map((n) => (n > 0 ? Math.max(n, 12) : 0));
+  const sum = boosted.reduce((a, n) => a + n, 0) || 1;
+  const lens = boosted.map((n) => (n / sum) * track);
+  const arcs: { id: string; color: string; start: number; len: number }[] = [];
+  let acc = 0;
+  slices.forEach((s, i) => {
+    const len = lens[i] ?? 0;
+    arcs.push({ id: s.id, color: s.color, start: acc, len });
+    acc += len;
+  });
+  return arcs;
+}
+
 function CategoryRing({
   slices,
   selected,
@@ -171,6 +190,10 @@ function CategoryRing({
   const cx = size / 2;
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
   const [shown, setShown] = useState(0);
+  const [drawn, setDrawn] = useState<{ id: string; color: string; start: number; len: number }[]>([]);
+  const drawnNow = useRef(drawn);
+  drawnNow.current = drawn;
+  const orderRef = useRef<string[]>([]);
   const [sal, setSal] = useState({ start: 0, len: 0, color: "#22d3ee", on: false });
   const salNow = useRef(sal);
   salNow.current = sal;
@@ -185,24 +208,55 @@ function CategoryRing({
     return () => window.clearTimeout(t);
   }, [active, shown]);
 
-  const minL = 12;
-  const boosted = slices.map((s) => {
-    const raw = (s.value / total) * track;
-    return raw > 0 ? Math.max(raw, minL) : 0;
-  });
-  const boostSum = boosted.reduce((a, n) => a + n, 0) || 1;
-  const lens = boosted.map((n) => (n / boostSum) * track);
-
-  const arcs: { id: string; color: string; start: number; len: number }[] = [];
-  let acc = 0;
-  slices.forEach((s, i) => {
-    const len = lens[i] ?? 0;
-    arcs.push({ id: s.id, color: s.color, start: acc, len });
-    acc += len;
-  });
+  useEffect(() => {
+    const ids = slices.map((s) => s.id);
+    const prev = orderRef.current.filter((id) => ids.includes(id));
+    const extra = ids.filter((id) => !prev.includes(id));
+    orderRef.current = [...prev, ...extra];
+    const ordered = orderRef.current
+      .map((id) => slices.find((s) => s.id === id))
+      .filter((s): s is (typeof slices)[number] => Boolean(s));
+    const target = layoutArcs(ordered, track);
+    const fromMap = new Map(drawnNow.current.map((a) => [a.id, a]));
+    const from = target.map((a) => fromMap.get(a.id) ?? { ...a, len: 0 });
+    if (!drawnNow.current.length) {
+      setDrawn(target);
+      return;
+    }
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / 820);
+      const e = 1 - (1 - p) ** 3;
+      const lens = target.map((a, i) => {
+        const f = from[i] ?? a;
+        return f.len + (a.len - f.len) * e;
+      });
+      let acc = 0;
+      setDrawn(
+        target.map((a, i) => {
+          const len = lens[i] ?? 0;
+          const row = { ...a, start: acc, len };
+          acc += len;
+          return row;
+        }),
+      );
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [slices, track]);
 
   useEffect(() => {
-    const target = selected ? arcs.find((a) => a.id === selected) : undefined;
+    if (!selected) return;
+    const t = drawn.find((a) => a.id === selected);
+    if (t && salNow.current.on) {
+      setSal({ start: t.start, len: t.len, color: t.color, on: true });
+    }
+  }, [drawn, selected]);
+
+  useEffect(() => {
+    const target = selected ? drawnNow.current.find((a) => a.id === selected) : undefined;
     const from = salNow.current;
     const to = target
       ? { start: target.start, len: target.len, color: target.color, on: true }
@@ -212,10 +266,9 @@ function CategoryRing({
       return;
     }
     const t0 = performance.now();
-    const dur = 820;
     let raf = 0;
     const tick = (now: number) => {
-      const p = Math.min(1, (now - t0) / dur);
+      const p = Math.min(1, (now - t0) / 820);
       const e = 1 - (1 - p) ** 3;
       setSal({
         start: from.start + (to.start - from.start) * e,
@@ -227,7 +280,7 @@ function CategoryRing({
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [selected, slices]);
+  }, [selected]);
 
   const hit = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -275,7 +328,7 @@ function CategoryRing({
           strokeLinecap="round"
           strokeDasharray={`${track} ${c}`}
         />
-        {arcs.map((a, i) => (
+        {drawn.map((a, i) => (
           <circle
             key={`arc-${a.id}`}
             cx={cx}
@@ -284,14 +337,13 @@ function CategoryRing({
             fill="none"
             stroke={a.color}
             strokeWidth={stroke}
-            strokeLinecap={i === 0 || i === arcs.length - 1 ? "round" : "butt"}
+            strokeLinecap={i === 0 || i === drawn.length - 1 ? "round" : "butt"}
             strokeDasharray={`${Math.max(0.01, a.len * shown)} ${c}`}
             strokeDashoffset={-a.start * shown}
             style={{
               opacity: selected ? 0.22 : 1,
               filter: selected ? "none" : glowFilter(a.color),
-              transition:
-                "stroke-dasharray 820ms cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 820ms cubic-bezier(0.22, 1, 0.36, 1), opacity 380ms ease, filter 380ms ease",
+              transition: "opacity 380ms ease, filter 380ms ease",
             }}
           />
         ))}
