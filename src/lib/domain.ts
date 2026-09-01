@@ -177,13 +177,13 @@ export function computePeriodSpend(
   let count = 0;
   for (const s of subs) {
     if (s.status !== "active") continue;
-    const share = period === "year" ? monthlyCost(s) * 12 : monthlyCost(s);
-    if (share <= 0) continue;
-    due += share;
-    count += 1;
     const price = Number(s.price);
     if (!Number.isFinite(price) || price <= 0) continue;
-    for (const d of occurrencesInRange(s, start, end)) {
+    const hits = occurrencesInRange(s, start, end);
+    if (!hits.length) continue;
+    count += 1;
+    for (const d of hits) {
+      due += price;
       if (!isAfter(startOfDay(d), today)) paid += price;
     }
   }
@@ -194,7 +194,7 @@ export function computePeriodSpend(
     due,
     paid,
     remaining: Math.max(0, due - paid),
-    percent: due > 0 ? Math.min(1, paid / due) : 0,
+    percent: due > 0 ? paid / due : 0,
     count,
   };
 }
@@ -214,16 +214,29 @@ export function activePriceStats(subs: Subscription[]) {
   };
 }
 
+export function cashInPeriod(
+  s: Subscription,
+  period: SpendPeriod,
+  from: Date = new Date(),
+): number {
+  if (s.status !== "active") return 0;
+  const price = Number(s.price);
+  if (!Number.isFinite(price) || price <= 0) return 0;
+  const { start, end } = periodBounds(period, from);
+  return price * occurrencesInRange(s, start, end).length;
+}
+
 export function spendByCategory(
   subs: Subscription[],
   period: SpendPeriod = "month",
+  from: Date = new Date(),
 ) {
   const map = new Map<string, number>();
-  const mul = period === "year" ? 12 : 1;
   for (const s of subs) {
-    if (s.status !== "active") continue;
+    const value = cashInPeriod(s, period, from);
+    if (value <= 0) continue;
     const id = s.category === "produttivita" ? "ufficio" : s.category;
-    map.set(id, (map.get(id) ?? 0) + monthlyCost(s) * mul);
+    map.set(id, (map.get(id) ?? 0) + value);
   }
   return [...map.entries()]
     .map(([id, value]) => ({
