@@ -190,14 +190,52 @@ function CategoryRing({
   const boostSum = boosted.reduce((a, n) => a + n, 0) || 1;
   const lens = boosted.map((n) => (n / boostSum) * track);
 
-  const arcs: { id: string; color: string; start: number; len: number }[] = [];
+  const segs: {
+    key: string;
+    slice: string;
+    color: string;
+    start: number;
+    len: number;
+    glow: boolean;
+    cap: "round" | "butt";
+  }[] = [];
   let acc = 0;
   slices.forEach((s, i) => {
-    const len = lens[i] ?? 0;
-    arcs.push({ id: s.id, color: s.color, start: acc, len });
-    acc += len;
+    const raw = lens[i] ?? 0;
+    const next = slices[i + 1];
+    const nextLen = lens[i + 1] ?? 0;
+    const blend = next && raw > 16 && nextLen > 16 ? Math.min(raw, nextLen) * 0.38 : 0;
+    const solid = Math.max(0.8, raw - blend);
+    segs.push({
+      key: `${s.id}-s`,
+      slice: s.id,
+      color: s.color,
+      start: acc,
+      len: solid,
+      glow: true,
+      cap: i === 0 ? "round" : "butt",
+    });
+    acc += solid;
+    if (next && blend > 0.8) {
+      const steps = 8;
+      for (let k = 1; k <= steps; k++) {
+        const t = k / (steps + 1);
+        segs.push({
+          key: `${s.id}-b${k}`,
+          slice: t < 0.5 ? s.id : next.id,
+          color: mixHex(s.color, next.color, t),
+          start: acc,
+          len: blend / steps,
+          glow: false,
+          cap: "butt",
+        });
+        acc += blend / steps;
+      }
+    }
+    if (i === slices.length - 1 && segs.length) {
+      segs[segs.length - 1] = { ...segs[segs.length - 1]!, cap: "round" };
+    }
   });
-  const activeArc = selected ? arcs.find((a) => a.id === selected) : undefined;
 
   const hit = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -225,7 +263,7 @@ function CategoryRing({
   };
 
   const ringTransition =
-    "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1)";
+    "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1), opacity 420ms ease, filter 420ms ease";
 
   return (
     <svg
@@ -248,39 +286,42 @@ function CategoryRing({
           strokeLinecap="round"
           strokeDasharray={`${track} ${c}`}
         />
-        {!selected ? (
-          arcs.map((a, i) => (
+        {segs.map((s) => {
+          const on = !selected || selected === s.slice;
+          return (
             <circle
-              key={`arc-${a.id}`}
+              key={s.key}
               cx={cx}
               cy={cx}
               r={r}
               fill="none"
-              stroke={a.color}
+              stroke={s.color}
               strokeWidth={stroke}
-              strokeLinecap={i === 0 || i === arcs.length - 1 ? "round" : "butt"}
-              strokeDasharray={`${Math.max(0.01, a.len * shown)} ${c}`}
-              strokeDashoffset={-a.start * shown}
-              style={{ filter: glowFilter(a.color), transition: ringTransition }}
+              strokeLinecap={selected && on ? "round" : s.cap}
+              strokeDasharray={`${Math.max(0.01, s.len * shown)} ${c}`}
+              strokeDashoffset={-s.start * shown}
+              style={{
+                opacity: on ? 1 : 0.12,
+                filter: on && s.glow ? glowFilter(s.color) : "none",
+                transition: ringTransition,
+              }}
             />
-          ))
-        ) : activeArc ? (
-          <circle
-            cx={cx}
-            cy={cx}
-            r={r}
-            fill="none"
-            stroke={activeArc.color}
-            strokeWidth={stroke}
-            strokeLinecap="round"
-            strokeDasharray={`${activeArc.len} ${c}`}
-            strokeDashoffset={-activeArc.start}
-            style={{ filter: glowFilter(activeArc.color), transition: ringTransition }}
-          />
-        ) : null}
+          );
+        })}
       </g>
     </svg>
   );
+}
+
+function mixHex(a: string, b: string, t: number) {
+  const pa = a.replace("#", "");
+  const pb = b.replace("#", "");
+  if (pa.length !== 6 || pb.length !== 6) return a;
+  const mix = (i: number) =>
+    Math.round(parseInt(pa.slice(i, i + 2), 16) * (1 - t) + parseInt(pb.slice(i, i + 2), 16) * t)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${mix(0)}${mix(2)}${mix(4)}`;
 }
 
 function glowFilter(hex: string): string {
