@@ -198,15 +198,23 @@ function CategoryRing({
   const salNow = useRef(sal);
   salNow.current = sal;
 
+  const shownNow = useRef(0);
+  shownNow.current = shown;
   useEffect(() => {
-    if (!active) {
-      setShown(0);
-      return;
-    }
-    if (shown >= 1) return;
-    const t = window.setTimeout(() => setShown(1), 80);
-    return () => window.clearTimeout(t);
-  }, [active, shown]);
+    const to = active ? 1 : 0;
+    const from = shownNow.current;
+    if (Math.abs(from - to) < 0.001) return;
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / 820);
+      const e = 1 - (1 - p) ** 3;
+      setShown(from + (to - from) * e);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active]);
 
   useEffect(() => {
     const ids = slices.map((s) => s.id);
