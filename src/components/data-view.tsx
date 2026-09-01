@@ -160,11 +160,16 @@ function fitSal(
   a: { start: number; len: number; color: string },
   track: number,
 ) {
-  const min = 32;
-  const len = Math.min(track, Math.max(min, a.len));
-  let start = a.start + a.len / 2 - len / 2;
-  if (start < 0) start = 0;
-  if (start + len > track) start = Math.max(0, track - len);
+  if (a.len < 20) {
+    return {
+      start: Math.max(0, Math.min(track, a.start + a.len / 2)),
+      len: 0.01,
+      color: a.color,
+      on: true as const,
+    };
+  }
+  const len = Math.min(track, a.len);
+  const start = Math.max(0, Math.min(Math.max(0, track - len), a.start));
   return { start, len, color: a.color, on: true as const };
 }
 
@@ -174,7 +179,7 @@ function layoutArcs(
 ) {
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
   const raw = slices.map((s) => (s.value / total) * track);
-  const boosted = raw.map((n) => (n > 0 ? Math.max(n, 12) : 0));
+  const boosted = raw.map((n) => (n > 0 ? Math.max(n, 4) : 0));
   const sum = boosted.reduce((a, n) => a + n, 0) || 1;
   const lens = boosted.map((n) => (n / sum) * track);
   const arcs: { id: string; color: string; start: number; len: number }[] = [];
@@ -378,7 +383,7 @@ function CategoryRing({
                   ...a,
                   vis: Math.max(0, Math.min(a.len, reveal - a.start)),
                 }))
-                .filter((a) => a.vis >= 10);
+                .filter((a) => a.vis >= 16);
               const a0 = vis[0];
               const a1 = vis[vis.length - 1];
               if (!a0 || !a1) return null;
