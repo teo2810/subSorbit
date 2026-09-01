@@ -363,26 +363,6 @@ function CategoryRing({
             />
           );
         })}
-        {reveal >= 6 && drawn[0] ? (
-          <circle
-            cx={cx + r}
-            cy={cx}
-            r={stroke / 2}
-            fill={selected && selected !== drawn[0].id ? "rgba(255,255,255,0.25)" : drawn[0].color}
-          />
-        ) : null}
-        {reveal >= 6 ? (
-          <circle
-            cx={cx + r * Math.cos(Math.min(reveal, track) / r)}
-            cy={cx + r * Math.sin(Math.min(reveal, track) / r)}
-            r={stroke / 2}
-            fill={
-              selected
-                ? sal.color
-                : [...drawn].reverse().find((a) => reveal > a.start)?.color ?? "#22d3ee"
-            }
-          />
-        ) : null}
         <circle
           cx={cx}
           cy={cx}
