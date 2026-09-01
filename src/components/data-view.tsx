@@ -173,23 +173,32 @@ function fitSal(
   return { start, len, color: a.color, on: true as const };
 }
 
+type Arc = {
+  id: string;
+  color: string;
+  start: number;
+  len: number;
+  bead: boolean;
+};
+
 function layoutArcs(
   slices: { id: string; value: number; color: string }[],
   track: number,
-) {
+): Arc[] {
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
-  const raw = slices.map((s) => (s.value / total) * track);
-  const boosted = raw.map((n) => (n > 0 ? Math.max(n, 4) : 0));
-  const sum = boosted.reduce((a, n) => a + n, 0) || 1;
-  const lens = boosted.map((n) => (n / sum) * track);
-  const arcs: { id: string; color: string; start: number; len: number }[] = [];
+  const majorVal = slices
+    .filter((s) => s.value / total >= 0.055)
+    .reduce((a, s) => a + s.value, 0);
+  const use = majorVal > 0 ? majorVal : total;
   let acc = 0;
-  slices.forEach((s, i) => {
-    const len = lens[i] ?? 0;
-    arcs.push({ id: s.id, color: s.color, start: acc, len });
+  return slices.map((s) => {
+    const bead = majorVal > 0 && s.value / total < 0.055;
+    if (bead) return { id: s.id, color: s.color, start: 0, len: 0, bead: true };
+    const len = (s.value / use) * track;
+    const row = { id: s.id, color: s.color, start: acc, len, bead: false };
     acc += len;
+    return row;
   });
-  return arcs;
 }
 
 function CategoryRing({
@@ -209,9 +218,8 @@ function CategoryRing({
   const c = 2 * Math.PI * r;
   const track = c * 0.75;
   const cx = size / 2;
-  const total = slices.reduce((a, s) => a + s.value, 0) || 1;
   const [reveal, setReveal] = useState(0);
-  const [drawn, setDrawn] = useState<{ id: string; color: string; start: number; len: number }[]>([]);
+  const [drawn, setDrawn] = useState<Arc[]>([]);
   const drawnNow = useRef(drawn);
   drawnNow.current = drawn;
   const orderRef = useRef<string[]>([]);
@@ -264,9 +272,9 @@ function CategoryRing({
       let acc = 0;
       setDrawn(
         target.map((a, i) => {
-          const len = lens[i] ?? 0;
-          const row = { ...a, start: acc, len };
-          acc += len;
+          const len = a.bead ? 0 : (lens[i] ?? 0);
+          const row = { ...a, start: acc, len, bead: a.bead };
+          if (!a.bead) acc += len;
           return row;
         }),
       );
@@ -279,13 +287,16 @@ function CategoryRing({
   useEffect(() => {
     if (!selected) return;
     const t = drawn.find((a) => a.id === selected);
-    if (t && salNow.current.on) setSal(fitSal(t, track));
+    if (t && !t.bead && salNow.current.on) setSal(fitSal(t, track));
   }, [drawn, selected]);
 
   useEffect(() => {
     const hitArc = selected ? drawnNow.current.find((a) => a.id === selected) : undefined;
     const from = salNow.current;
-    const to = hitArc ? fitSal(hitArc, track) : { ...from, on: false };
+    const to =
+      hitArc && !hitArc.bead && hitArc.len >= 16
+        ? fitSal(hitArc, track)
+        : { ...from, on: false };
     if (!from.on && hitArc) {
       setSal(to);
       return;
@@ -307,26 +318,41 @@ function CategoryRing({
     return () => cancelAnimationFrame(raf);
   }, [selected]);
 
+  const beads = drawn.filter((a) => a.bead);
+  const beadOff = (i: number) =>
+    track + ((c - track) * (i + 1)) / (beads.length + 1);
+  const pt = (off: number) => ({
+    x: cx + r * Math.cos(off / r),
+    y: cx + r * Math.sin(off / r),
+  });
+
   const hit = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
-    const dist = Math.hypot(x, y);
     const scale = rect.width / size;
-    const rr = r * scale;
-    if (Math.abs(dist - rr) > 22 * scale) return;
+    const lx = (e.clientX - rect.left) / scale;
+    const ly = (e.clientY - rect.top) / scale;
+    for (let i = 0; i < beads.length; i++) {
+      const p = pt(beadOff(i));
+      if (Math.hypot(lx - p.x, ly - p.y) <= stroke) {
+        onSelect(selected === beads[i].id ? null : beads[i].id);
+        return;
+      }
+    }
+    const x = lx - cx;
+    const y = ly - cx;
+    const dist = Math.hypot(x, y);
+    if (Math.abs(dist - r) > 22) return;
     let ang = Math.atan2(y, x);
     if (ang < 0) ang += Math.PI * 2;
     const startA = (135 * Math.PI) / 180;
     let rel = ang - startA;
     if (rel < 0) rel += Math.PI * 2;
     if (rel > (270 * Math.PI) / 180) return;
-    const p = rel / ((270 * Math.PI) / 180);
-    let sum = 0;
-    for (const s of slices) {
-      sum += s.value / total;
-      if (p <= sum) {
-        onSelect(selected === s.id ? null : s.id);
+    const pos = (rel / ((270 * Math.PI) / 180)) * track;
+    for (const a of drawn) {
+      if (a.bead) continue;
+      if (pos >= a.start && pos <= a.start + a.len) {
+        onSelect(selected === a.id ? null : a.id);
         return;
       }
     }
@@ -354,6 +380,7 @@ function CategoryRing({
           strokeDasharray={`${track} ${c}`}
         />
         {drawn.map((a) => {
+          if (a.bead) return null;
           const vis = Math.max(0, Math.min(a.len, reveal - a.start));
           if (vis < 0.8) return null;
           return (
@@ -379,6 +406,7 @@ function CategoryRing({
         {reveal >= 8
           ? (() => {
               const vis = drawn
+                .filter((a) => !a.bead)
                 .map((a) => ({
                   ...a,
                   vis: Math.max(0, Math.min(a.len, reveal - a.start)),
@@ -400,6 +428,26 @@ function CategoryRing({
                 </>
               );
             })()
+          : null}
+        {reveal > track * 0.6
+          ? beads.map((a, i) => {
+              const p = pt(beadOff(i));
+              const on = selected === a.id;
+              return (
+                <circle
+                  key={`bead-${a.id}`}
+                  cx={p.x}
+                  cy={p.y}
+                  r={on ? stroke / 2 + 1.5 : stroke / 2 - 1}
+                  fill={a.color}
+                  opacity={!selected || on ? 1 : 0.28}
+                  style={{
+                    filter: !selected || on ? glowFilter(a.color) : "none",
+                    transition: "opacity 380ms ease, r 380ms ease",
+                  }}
+                />
+              );
+            })
           : null}
         <circle
           cx={cx}
