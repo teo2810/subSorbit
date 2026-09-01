@@ -82,15 +82,16 @@ export function HomeView({
           <SpendRing percent={spend.percent} active={active} />
           <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
             <p className="font-display text-[32px] font-semibold tabular-nums leading-none tracking-tight">
-              {formatEuroCompact(spend.due)}
+              {formatEuroCompact(spend.paid)}
             </p>
             <p className="mt-2 text-[11px] leading-snug text-muted">
-              {period === "month"
-                ? "Abbonamenti di questo mese"
-                : "Abbonamenti di quest’anno"}
+              {period === "month" ? "Già pagato questo mese" : "Già pagato quest’anno"}
             </p>
-            <p className="mt-1.5 text-[11px] text-cyan">
-              Pagato {pct}% · resta {formatEuroCompact(spend.remaining)}
+            <p className="mt-1.5 text-[13px] font-medium tabular-nums text-cyan">
+              di {formatEuroCompact(spend.due)} · {pct}%
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted">
+              resta {formatEuroCompact(spend.remaining)}
             </p>
           </div>
           </div>
