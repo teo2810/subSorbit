@@ -156,6 +156,18 @@ function easeInOut(p: number) {
   return p < 0.5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2;
 }
 
+function fitSal(
+  a: { start: number; len: number; color: string },
+  track: number,
+) {
+  const min = 32;
+  const len = Math.min(track, Math.max(min, a.len));
+  let start = a.start + a.len / 2 - len / 2;
+  if (start < 0) start = 0;
+  if (start + len > track) start = Math.max(0, track - len);
+  return { start, len, color: a.color, on: true as const };
+}
+
 function layoutArcs(
   slices: { id: string; value: number; color: string }[],
   track: number,
@@ -262,17 +274,13 @@ function CategoryRing({
   useEffect(() => {
     if (!selected) return;
     const t = drawn.find((a) => a.id === selected);
-    if (t && salNow.current.on) {
-      setSal({ start: t.start, len: t.len, color: t.color, on: true });
-    }
+    if (t && salNow.current.on) setSal(fitSal(t, track));
   }, [drawn, selected]);
 
   useEffect(() => {
-    const target = selected ? drawnNow.current.find((a) => a.id === selected) : undefined;
+    const hitArc = selected ? drawnNow.current.find((a) => a.id === selected) : undefined;
     const from = salNow.current;
-    const to = target
-      ? { start: target.start, len: target.len, color: target.color, on: true }
-      : { ...from, on: false };
+    const to = hitArc ? fitSal(hitArc, track) : { ...from, on: false };
     if (!from.on && target) {
       setSal(to);
       return;
@@ -363,30 +371,6 @@ function CategoryRing({
             />
           );
         })}
-        {(() => {
-          const vis = drawn
-            .map((a) => ({
-              ...a,
-              vis: Math.max(0, Math.min(a.len, reveal - a.start)),
-            }))
-            .filter((a) => a.vis >= 8);
-          const a0 = vis[0];
-          const a1 = vis[vis.length - 1];
-          if (!a0 || !a1 || selected) return null;
-          const pt = (off: number) => ({
-            x: cx + r * Math.cos(off / r),
-            y: cx + r * Math.sin(off / r),
-          });
-          const s = pt(a0.start);
-          const e = pt(a1.start + a1.vis);
-          const dim = selected ? 0.25 : 1;
-          return (
-            <>
-              <circle cx={s.x} cy={s.y} r={stroke / 2} fill={a0.color} opacity={selected && selected !== a0.id ? dim : 1} />
-              <circle cx={e.x} cy={e.y} r={stroke / 2} fill={a1.color} opacity={selected && selected !== a1.id ? dim : 1} />
-            </>
-          );
-        })()}
         <circle
           cx={cx}
           cy={cx}
@@ -395,11 +379,11 @@ function CategoryRing({
           stroke={sal.color}
           strokeWidth={stroke}
           strokeLinecap="round"
-          strokeDasharray={`${Math.max(0, Math.min(sal.len, reveal - sal.start))} ${c}`}
+          strokeDasharray={`${Math.max(0.01, sal.on ? sal.len : 0)} ${c}`}
           strokeDashoffset={-sal.start}
           style={{
-            opacity: sal.on && sal.len >= 28 ? 1 : 0,
-            filter: sal.on && sal.len >= 28 ? glowFilter(sal.color) : "none",
+            opacity: sal.on ? 1 : 0,
+            filter: sal.on ? glowFilter(sal.color) : "none",
           }}
         />
       </g>
