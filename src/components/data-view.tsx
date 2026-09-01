@@ -371,6 +371,31 @@ function CategoryRing({
             />
           );
         })}
+        {!selected && reveal >= 8
+          ? (() => {
+              const vis = drawn
+                .map((a) => ({
+                  ...a,
+                  vis: Math.max(0, Math.min(a.len, reveal - a.start)),
+                }))
+                .filter((a) => a.vis >= 10);
+              const a0 = vis[0];
+              const a1 = vis[vis.length - 1];
+              if (!a0 || !a1) return null;
+              const pt = (off: number) => ({
+                x: cx + r * Math.cos(off / r),
+                y: cx + r * Math.sin(off / r),
+              });
+              const s = pt(a0.start);
+              const e = pt(a1.start + a1.vis);
+              return (
+                <>
+                  <circle cx={s.x} cy={s.y} r={stroke / 2} fill={a0.color} />
+                  <circle cx={e.x} cy={e.y} r={stroke / 2} fill={a1.color} />
+                </>
+              );
+            })()
+          : null}
         <circle
           cx={cx}
           cy={cx}
