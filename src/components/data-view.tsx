@@ -364,14 +364,14 @@ function CategoryRing({
               strokeDasharray={`${vis} ${c}`}
               strokeDashoffset={-a.start}
               style={{
-                opacity: !selected || selected === a.id ? 1 : 0.22,
-                filter: !selected || selected === a.id ? glowFilter(a.color) : "none",
+                opacity: selected ? 0.28 : 1,
+                filter: selected ? "none" : glowFilter(a.color),
                 transition: "opacity 380ms ease, filter 380ms ease",
               }}
             />
           );
         })}
-        {!selected && reveal >= 8
+        {reveal >= 8
           ? (() => {
               const vis = drawn
                 .map((a) => ({
@@ -390,8 +390,8 @@ function CategoryRing({
               const e = pt(a1.start + a1.vis);
               return (
                 <>
-                  <circle cx={s.x} cy={s.y} r={stroke / 2} fill={a0.color} />
-                  <circle cx={e.x} cy={e.y} r={stroke / 2} fill={a1.color} />
+                  <circle cx={s.x} cy={s.y} r={stroke / 2} fill={a0.color} opacity={selected ? 0.28 : 1} />
+                  <circle cx={e.x} cy={e.y} r={stroke / 2} fill={a1.color} opacity={selected ? 0.28 : 1} />
                 </>
               );
             })()
