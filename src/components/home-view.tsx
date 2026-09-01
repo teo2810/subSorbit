@@ -80,7 +80,7 @@ export function HomeView({
           <ChartBackdrop />
           <div className="relative h-[236px] w-[236px]">
           <SpendRing percent={spend.percent} active={active} />
-          <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
             <p className="font-display text-[32px] font-semibold tabular-nums leading-none tracking-tight">
               {formatEuroCompact(spend.paid)}
             </p>
@@ -88,7 +88,7 @@ export function HomeView({
               {period === "month" ? "Già addebitato questo mese" : "Già addebitato quest’anno"}
             </p>
             <p className="mt-1.5 text-[11px] tabular-nums text-cyan">
-              di {formatEuroCompact(spend.due)} · {pct}% · resta {formatEuroCompact(spend.remaining)}
+              di {formatEuroCompact(spend.due)} · {pct}%
             </p>
           </div>
           </div>

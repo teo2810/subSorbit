@@ -77,11 +77,16 @@ export function DataView({
                   ? "Addebiti di questo mese"
                   : "Addebiti di quest’anno"}
             </p>
-            {selected && total > 0 ? (
-              <p className="mt-1.5 text-[11px] text-cyan">
-                {Math.round((selected.value / total) * 100)}% della spesa
-              </p>
-            ) : null}
+            <p
+              className={cn(
+                "mt-1.5 text-[11px] text-cyan",
+                !(selected && total > 0) && "invisible",
+              )}
+            >
+              {selected && total > 0
+                ? `${Math.round((selected.value / total) * 100)}% della spesa`
+                : "\u00A0"}
+            </p>
           </div>
           </div>
         </div>
@@ -185,39 +190,14 @@ function CategoryRing({
   const boostSum = boosted.reduce((a, n) => a + n, 0) || 1;
   const lens = boosted.map((n) => (n / boostSum) * track);
 
-  const segs: { id: string; slice: string; color: string; start: number; len: number; glow: boolean }[] = [];
+  const arcs: { id: string; color: string; start: number; len: number }[] = [];
   let acc = 0;
   slices.forEach((s, i) => {
-    const raw = lens[i] ?? 0;
-    const next = slices[i + 1];
-    const nextLen = lens[i + 1] ?? 0;
-    const blend = next && raw > 14 && nextLen > 14 ? Math.min(raw, nextLen) * 0.32 : 0;
-    const solid = Math.max(0.8, raw - blend);
-    segs.push({
-      id: `${s.id}-s`,
-      slice: s.id,
-      color: s.color,
-      start: acc * shown,
-      len: solid * shown,
-      glow: true,
-    });
-    acc += solid;
-    if (next && blend > 0.6) {
-      const steps = 7;
-      for (let k = 1; k <= steps; k++) {
-        const t = k / (steps + 1);
-        segs.push({
-          id: `${s.id}-b${k}`,
-          slice: t < 0.5 ? s.id : next.id,
-          color: mixHex(s.color, next.color, t),
-          start: acc * shown,
-          len: (blend / steps) * shown,
-          glow: false,
-        });
-        acc += blend / steps;
-      }
-    }
+    const len = lens[i] ?? 0;
+    arcs.push({ id: s.id, color: s.color, start: acc, len });
+    acc += len;
   });
+  const activeArc = selected ? arcs.find((a) => a.id === selected) : undefined;
 
   const hit = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -244,6 +224,9 @@ function CategoryRing({
     }
   };
 
+  const ringTransition =
+    "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1)";
+
   return (
     <svg
       width={size}
@@ -265,62 +248,51 @@ function CategoryRing({
           strokeLinecap="round"
           strokeDasharray={`${track} ${c}`}
         />
-        {segs.map((s) => {
-          const dim = Boolean(selected && selected !== s.slice);
-          const hex = s.color;
-          return (
+        {!selected ? (
+          arcs.map((a, i) => (
             <circle
-              key={s.id}
+              key={`arc-${a.id}`}
               cx={cx}
               cy={cx}
               r={r}
               fill="none"
-              stroke={hex}
+              stroke={a.color}
               strokeWidth={stroke}
-              strokeLinecap="butt"
-              strokeDasharray={`${Math.max(0.01, s.len)} ${c}`}
-              strokeDashoffset={-s.start}
-              style={{
-                opacity: dim ? 0.22 : 1,
-                filter: dim || !s.glow
-                  ? "none"
-                  : `drop-shadow(0 0 6px ${hex}) drop-shadow(0 0 16px ${hex}aa)`,
-                transition:
-                  "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease",
-              }}
+              strokeLinecap={i === 0 || i === arcs.length - 1 ? "round" : "butt"}
+              strokeDasharray={`${Math.max(0.01, a.len * shown)} ${c}`}
+              strokeDashoffset={-a.start * shown}
+              style={{ filter: glowFilter(a.color), transition: ringTransition }}
             />
-          );
-        })}
-        <circle
-          cx={cx + r}
-          cy={cx}
-          r={stroke / 2}
-          fill={slices[0] && selected && selected !== slices[0].id ? "rgba(255,255,255,0.2)" : slices[0]?.color ?? "#22d3ee"}
-        />
-        <circle
-          cx={cx + r * Math.cos(1.5 * Math.PI * shown)}
-          cy={cx + r * Math.sin(1.5 * Math.PI * shown)}
-          r={stroke / 2}
-          fill={
-            slices.length && selected && selected !== slices[slices.length - 1]!.id
-              ? "rgba(255,255,255,0.2)"
-              : slices[slices.length - 1]?.color ?? "#22d3ee"
-          }
-        />
+          ))
+        ) : activeArc ? (
+          <circle
+            cx={cx}
+            cy={cx}
+            r={r}
+            fill="none"
+            stroke={activeArc.color}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${activeArc.len} ${c}`}
+            strokeDashoffset={-activeArc.start}
+            style={{ filter: glowFilter(activeArc.color), transition: ringTransition }}
+          />
+        ) : null}
       </g>
     </svg>
   );
 }
 
-function mixHex(a: string, b: string, t: number) {
-  const pa = a.replace("#", "");
-  const pb = b.replace("#", "");
-  if (pa.length !== 6 || pb.length !== 6) return a;
-  const mix = (i: number) =>
-    Math.round(parseInt(pa.slice(i, i + 2), 16) * (1 - t) + parseInt(pb.slice(i, i + 2), 16) * t)
-      .toString(16)
-      .padStart(2, "0");
-  return `#${mix(0)}${mix(2)}${mix(4)}`;
+function glowFilter(hex: string): string {
+  return [
+    `drop-shadow(0 0 6px ${hexAlpha(hex, "ff")})`,
+    `drop-shadow(0 0 16px ${hexAlpha(hex, "cc")})`,
+    `drop-shadow(0 0 32px ${hexAlpha(hex, "73")})`,
+  ].join(" ");
+}
+
+function hexAlpha(hex: string, alphaHex: string): string {
+  return /^#[0-9a-fA-F]{6}$/.test(hex) ? `${hex}${alphaHex}` : hex;
 }
 
 function Chip({
