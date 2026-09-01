@@ -181,10 +181,11 @@ export function computePeriodSpend(
     if (share <= 0) continue;
     due += share;
     count += 1;
-    const stillDue = occurrencesInRange(s, start, end).some((d) =>
-      isAfter(startOfDay(d), today),
-    );
-    if (!stillDue) paid += share;
+    const price = Number(s.price);
+    if (!Number.isFinite(price) || price <= 0) continue;
+    for (const d of occurrencesInRange(s, start, end)) {
+      if (!isAfter(startOfDay(d), today)) paid += price;
+    }
   }
   return {
     period,
@@ -193,7 +194,7 @@ export function computePeriodSpend(
     due,
     paid,
     remaining: Math.max(0, due - paid),
-    percent: due > 0 ? paid / due : 0,
+    percent: due > 0 ? Math.min(1, paid / due) : 0,
     count,
   };
 }
