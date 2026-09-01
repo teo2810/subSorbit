@@ -281,7 +281,7 @@ function CategoryRing({
     const hitArc = selected ? drawnNow.current.find((a) => a.id === selected) : undefined;
     const from = salNow.current;
     const to = hitArc ? fitSal(hitArc, track) : { ...from, on: false };
-    if (!from.on && target) {
+    if (!from.on && hitArc) {
       setSal(to);
       return;
     }
