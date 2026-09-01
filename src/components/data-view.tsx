@@ -152,6 +152,10 @@ export function DataView({
   );
 }
 
+function easeInOut(p: number) {
+  return p < 0.5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2;
+}
+
 function layoutArcs(
   slices: { id: string; value: number; color: string }[],
   track: number,
@@ -189,7 +193,7 @@ function CategoryRing({
   const track = c * 0.75;
   const cx = size / 2;
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
-  const [shown, setShown] = useState(0);
+  const [reveal, setReveal] = useState(0);
   const [drawn, setDrawn] = useState<{ id: string; color: string; start: number; len: number }[]>([]);
   const drawnNow = useRef(drawn);
   drawnNow.current = drawn;
@@ -198,23 +202,23 @@ function CategoryRing({
   const salNow = useRef(sal);
   salNow.current = sal;
 
-  const shownNow = useRef(0);
-  shownNow.current = shown;
+  const revealNow = useRef(0);
+  revealNow.current = reveal;
   useEffect(() => {
-    const to = active ? 1 : 0;
-    const from = shownNow.current;
-    if (Math.abs(from - to) < 0.001) return;
+    const to = active ? track : 0;
+    const from = revealNow.current;
+    if (Math.abs(from - to) < 0.5) return;
     const t0 = performance.now();
     let raf = 0;
     const tick = (now: number) => {
-      const p = Math.min(1, (now - t0) / 820);
-      const e = 1 - (1 - p) ** 3;
-      setShown(from + (to - from) * e);
+      const p = Math.min(1, (now - t0) / 1000);
+      const e = easeInOut(p);
+      setReveal(from + (to - from) * e);
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [active]);
+  }, [active, track]);
 
   useEffect(() => {
     const ids = slices.map((s) => s.id);
@@ -234,8 +238,8 @@ function CategoryRing({
     const t0 = performance.now();
     let raf = 0;
     const tick = (now: number) => {
-      const p = Math.min(1, (now - t0) / 820);
-      const e = 1 - (1 - p) ** 3;
+      const p = Math.min(1, (now - t0) / 1000);
+      const e = easeInOut(p);
       const lens = target.map((a, i) => {
         const f = from[i] ?? a;
         return f.len + (a.len - f.len) * e;
@@ -346,8 +350,8 @@ function CategoryRing({
             stroke={a.color}
             strokeWidth={stroke}
             strokeLinecap={i === 0 || i === drawn.length - 1 ? "round" : "butt"}
-            strokeDasharray={`${Math.max(0.01, a.len * shown)} ${c}`}
-            strokeDashoffset={-a.start * shown}
+            strokeDasharray={`${Math.max(0, Math.min(a.len, reveal - a.start))} ${c}`}
+            strokeDashoffset={-a.start}
             style={{
               opacity: selected ? 0.22 : 1,
               filter: selected ? "none" : glowFilter(a.color),
@@ -363,8 +367,8 @@ function CategoryRing({
           stroke={sal.color}
           strokeWidth={stroke}
           strokeLinecap="round"
-          strokeDasharray={`${Math.max(0.01, sal.len * shown)} ${c}`}
-          strokeDashoffset={-sal.start * shown}
+          strokeDasharray={`${Math.max(0, Math.min(sal.len, reveal - sal.start))} ${c}`}
+          strokeDashoffset={-sal.start}
           style={{
             opacity: sal.on ? 1 : 0,
             filter: sal.on ? glowFilter(sal.color) : "none",
