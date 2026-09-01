@@ -5,7 +5,7 @@ import { BrandBadge } from "@/lib/logos";
 import { cn } from "@/lib/cn";
 import {
   activeMonthlyTotal,
-  monthlyCost,
+  cashInPeriod,
   spendByCategory,
   yearlyProjection,
   type SpendPeriod,
@@ -37,14 +37,11 @@ export function DataView({
   );
   const monthly = activeMonthlyTotal(subscriptions);
   const yearly = yearlyProjection(subscriptions);
-  const shownTotal = period === "year" ? yearly : monthly;
   const ranked = useMemo(() => {
     const rec = subscriptions
       .filter((s) => s.status === "active" && s.frequency !== "once")
-      .map((s) => ({
-        s,
-        v: monthlyCost(s) * (period === "year" ? 12 : 1),
-      }))
+      .map((s) => ({ s, v: cashInPeriod(s, period) }))
+      .filter(({ v }) => v > 0)
       .sort((a, b) => b.v - a.v);
     return {
       top: rec.slice(0, 3),
@@ -71,25 +68,20 @@ export function DataView({
           />
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-8 text-center">
             <p className="font-display text-[32px] font-semibold tabular-nums leading-none tracking-tight">
-              {formatEuroCompact(selected ? selected.value : shownTotal)}
+              {formatEuroCompact(selected ? selected.value : total)}
             </p>
             <p className="mt-2 text-[11px] leading-snug text-muted">
               {selected
                 ? selected.label
                 : period === "month"
-                  ? "Spesa di questo mese"
-                  : "Spesa di quest’anno"}
+                  ? "Addebiti di questo mese"
+                  : "Addebiti di quest’anno"}
             </p>
-            <p
-              className={cn(
-                "mt-1.5 text-[11px] text-cyan",
-                !(selected && total > 0) && "invisible",
-              )}
-            >
-              {selected && total > 0
-                ? `${Math.round((selected.value / total) * 100)}% della spesa`
-                : "\u00A0"}
-            </p>
+            {selected && total > 0 ? (
+              <p className="mt-1.5 text-[11px] text-cyan">
+                {Math.round((selected.value / total) * 100)}% della spesa
+              </p>
+            ) : null}
           </div>
           </div>
         </div>
@@ -136,7 +128,7 @@ export function DataView({
         <div className="mt-5 grid grid-cols-3 gap-2">
           <Stat
             label={period === "month" ? "Mensile" : "Annuale"}
-            value={formatEuroCompact(shownTotal)}
+            value={formatEuroCompact(period === "month" ? monthly : yearly)}
           />
           <Stat
             label={period === "month" ? "Annuale" : "Mensile"}
@@ -193,17 +185,39 @@ function CategoryRing({
   const boostSum = boosted.reduce((a, n) => a + n, 0) || 1;
   const lens = boosted.map((n) => (n / boostSum) * track);
 
-  // Un arco pieno per categoria (nessun segmento di transizione fatto a mano):
-  // la sfumatura tra colori adiacenti nasce dal blur applicato all'intero
-  // gruppo più sotto, non da colori interpolati manualmente.
-  const arcs: { id: string; color: string; start: number; len: number }[] = [];
+  const segs: { id: string; slice: string; color: string; start: number; len: number; glow: boolean }[] = [];
   let acc = 0;
   slices.forEach((s, i) => {
-    const len = lens[i] ?? 0;
-    arcs.push({ id: s.id, color: s.color, start: acc, len });
-    acc += len;
+    const raw = lens[i] ?? 0;
+    const next = slices[i + 1];
+    const nextLen = lens[i + 1] ?? 0;
+    const blend = next && raw > 14 && nextLen > 14 ? Math.min(raw, nextLen) * 0.32 : 0;
+    const solid = Math.max(0.8, raw - blend);
+    segs.push({
+      id: `${s.id}-s`,
+      slice: s.id,
+      color: s.color,
+      start: acc * shown,
+      len: solid * shown,
+      glow: true,
+    });
+    acc += solid;
+    if (next && blend > 0.6) {
+      const steps = 7;
+      for (let k = 1; k <= steps; k++) {
+        const t = k / (steps + 1);
+        segs.push({
+          id: `${s.id}-b${k}`,
+          slice: t < 0.5 ? s.id : next.id,
+          color: mixHex(s.color, next.color, t),
+          start: acc * shown,
+          len: (blend / steps) * shown,
+          glow: false,
+        });
+        acc += blend / steps;
+      }
+    }
   });
-  const activeArc = selected ? arcs.find((a) => a.id === selected) : undefined;
 
   const hit = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -230,9 +244,6 @@ function CategoryRing({
     }
   };
 
-  const ringTransition =
-    "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1)";
-
   return (
     <svg
       width={size}
@@ -254,65 +265,62 @@ function CategoryRing({
           strokeLinecap="round"
           strokeDasharray={`${track} ${c}`}
         />
-
-        {!selected ? (
-          <>
-            {/* Stessa identica ricetta dell'anello home: colore pieno +
-                3 drop-shadow impilati (6/16/32px), applicata diretta a ogni
-                arco. Niente più approssimazioni: è lo stesso filtro, stessi
-                numeri, solo con colori diversi per categoria. */}
-            {arcs.map((a, i) => (
-              <circle
-                key={`arc-${a.id}`}
-                cx={cx}
-                cy={cx}
-                r={r}
-                fill="none"
-                stroke={a.color}
-                strokeWidth={stroke}
-                strokeLinecap={i === 0 || i === arcs.length - 1 ? "round" : "butt"}
-                strokeDasharray={`${Math.max(0.01, a.len * shown)} ${c}`}
-                strokeDashoffset={-a.start * shown}
-                style={{ filter: glowFilter(a.color), transition: ringTransition }}
-              />
-            ))}
-          </>
-        ) : (
-          <>
-            {/* Da selezionati: nessun anello colorato di sfondo (solo la
-                traccia neutra già disegnata sopra), e l'arco isolato con la
-                stessa ricetta dell'home. */}
-            {activeArc ? (
-              <circle
-                cx={cx}
-                cy={cx}
-                r={r}
-                fill="none"
-                stroke={activeArc.color}
-                strokeWidth={stroke}
-                strokeLinecap="round"
-                strokeDasharray={`${activeArc.len} ${c}`}
-                strokeDashoffset={-activeArc.start}
-                style={{ filter: glowFilter(activeArc.color), transition: ringTransition }}
-              />
-            ) : null}
-          </>
-        )}
+        {segs.map((s) => {
+          const dim = Boolean(selected && selected !== s.slice);
+          const hex = s.color;
+          return (
+            <circle
+              key={s.id}
+              cx={cx}
+              cy={cx}
+              r={r}
+              fill="none"
+              stroke={hex}
+              strokeWidth={stroke}
+              strokeLinecap="butt"
+              strokeDasharray={`${Math.max(0.01, s.len)} ${c}`}
+              strokeDashoffset={-s.start}
+              style={{
+                opacity: dim ? 0.22 : 1,
+                filter: dim || !s.glow
+                  ? "none"
+                  : `drop-shadow(0 0 6px ${hex}) drop-shadow(0 0 16px ${hex}aa)`,
+                transition:
+                  "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1), stroke-dashoffset 900ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms ease",
+              }}
+            />
+          );
+        })}
+        <circle
+          cx={cx + r}
+          cy={cx}
+          r={stroke / 2}
+          fill={slices[0] && selected && selected !== slices[0].id ? "rgba(255,255,255,0.2)" : slices[0]?.color ?? "#22d3ee"}
+        />
+        <circle
+          cx={cx + r * Math.cos(1.5 * Math.PI * shown)}
+          cy={cx + r * Math.sin(1.5 * Math.PI * shown)}
+          r={stroke / 2}
+          fill={
+            slices.length && selected && selected !== slices[slices.length - 1]!.id
+              ? "rgba(255,255,255,0.2)"
+              : slices[slices.length - 1]?.color ?? "#22d3ee"
+          }
+        />
       </g>
     </svg>
   );
 }
 
-function glowFilter(hex: string): string {
-  return [
-    `drop-shadow(0 0 6px ${hexAlpha(hex, "ff")})`,
-    `drop-shadow(0 0 16px ${hexAlpha(hex, "cc")})`,
-    `drop-shadow(0 0 32px ${hexAlpha(hex, "73")})`,
-  ].join(" ");
-}
-
-function hexAlpha(hex: string, alphaHex: string): string {
-  return /^#[0-9a-fA-F]{6}$/.test(hex) ? `${hex}${alphaHex}` : hex;
+function mixHex(a: string, b: string, t: number) {
+  const pa = a.replace("#", "");
+  const pb = b.replace("#", "");
+  if (pa.length !== 6 || pb.length !== 6) return a;
+  const mix = (i: number) =>
+    Math.round(parseInt(pa.slice(i, i + 2), 16) * (1 - t) + parseInt(pb.slice(i, i + 2), 16) * t)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${mix(0)}${mix(2)}${mix(4)}`;
 }
 
 function Chip({

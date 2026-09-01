@@ -85,13 +85,10 @@ export function HomeView({
               {formatEuroCompact(spend.paid)}
             </p>
             <p className="mt-2 text-[11px] leading-snug text-muted">
-              {period === "month" ? "Già pagato questo mese" : "Già pagato quest’anno"}
+              {period === "month" ? "Già addebitato questo mese" : "Già addebitato quest’anno"}
             </p>
-            <p className="mt-1.5 text-[13px] font-medium tabular-nums text-cyan">
-              di {formatEuroCompact(spend.due)} · {pct}%
-            </p>
-            <p className="mt-0.5 text-[11px] text-muted">
-              resta {formatEuroCompact(spend.remaining)}
+            <p className="mt-1.5 text-[11px] tabular-nums text-cyan">
+              di {formatEuroCompact(spend.due)} · {pct}% · resta {formatEuroCompact(spend.remaining)}
             </p>
           </div>
           </div>
