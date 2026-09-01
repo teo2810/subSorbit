@@ -340,25 +340,49 @@ function CategoryRing({
           strokeLinecap="round"
           strokeDasharray={`${track} ${c}`}
         />
-        {drawn.map((a, i) => (
+        {drawn.map((a) => {
+          const vis = Math.max(0, Math.min(a.len, reveal - a.start));
+          if (vis < 0.8) return null;
+          return (
+            <circle
+              key={`arc-${a.id}`}
+              cx={cx}
+              cy={cx}
+              r={r}
+              fill="none"
+              stroke={a.color}
+              strokeWidth={stroke}
+              strokeLinecap="butt"
+              strokeDasharray={`${vis} ${c}`}
+              strokeDashoffset={-a.start}
+              style={{
+                opacity: selected ? 0.22 : 1,
+                filter: selected ? "none" : glowFilter(a.color),
+                transition: "opacity 380ms ease, filter 380ms ease",
+              }}
+            />
+          );
+        })}
+        {reveal >= 6 && drawn[0] ? (
           <circle
-            key={`arc-${a.id}`}
-            cx={cx}
+            cx={cx + r}
             cy={cx}
-            r={r}
-            fill="none"
-            stroke={a.color}
-            strokeWidth={stroke}
-            strokeLinecap={i === 0 || i === drawn.length - 1 ? "round" : "butt"}
-            strokeDasharray={`${Math.max(0, Math.min(a.len, reveal - a.start))} ${c}`}
-            strokeDashoffset={-a.start}
-            style={{
-              opacity: selected ? 0.22 : 1,
-              filter: selected ? "none" : glowFilter(a.color),
-              transition: "opacity 380ms ease, filter 380ms ease",
-            }}
+            r={stroke / 2}
+            fill={selected && selected !== drawn[0].id ? "rgba(255,255,255,0.25)" : drawn[0].color}
           />
-        ))}
+        ) : null}
+        {reveal >= 6 ? (
+          <circle
+            cx={cx + r * Math.cos(Math.min(reveal, track) / r)}
+            cy={cx + r * Math.sin(Math.min(reveal, track) / r)}
+            r={stroke / 2}
+            fill={
+              selected
+                ? sal.color
+                : [...drawn].reverse().find((a) => reveal > a.start)?.color ?? "#22d3ee"
+            }
+          />
+        ) : null}
         <circle
           cx={cx}
           cy={cx}
