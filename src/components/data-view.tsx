@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScreenHeader } from "./orbit-mark";
 import { ChartBackdrop } from "./chart-backdrop";
 import { BrandBadge } from "@/lib/logos";
@@ -171,6 +171,9 @@ function CategoryRing({
   const cx = size / 2;
   const total = slices.reduce((a, s) => a + s.value, 0) || 1;
   const [shown, setShown] = useState(0);
+  const [sal, setSal] = useState({ start: 0, len: 0, color: "#22d3ee", on: false });
+  const salNow = useRef(sal);
+  salNow.current = sal;
 
   useEffect(() => {
     if (!active) {
@@ -197,7 +200,34 @@ function CategoryRing({
     arcs.push({ id: s.id, color: s.color, start: acc, len });
     acc += len;
   });
-  const sal = selected ? arcs.find((a) => a.id === selected) : undefined;
+
+  useEffect(() => {
+    const target = selected ? arcs.find((a) => a.id === selected) : undefined;
+    const from = salNow.current;
+    const to = target
+      ? { start: target.start, len: target.len, color: target.color, on: true }
+      : { ...from, on: false };
+    if (!from.on && target) {
+      setSal(to);
+      return;
+    }
+    const t0 = performance.now();
+    const dur = 820;
+    let raf = 0;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - t0) / dur);
+      const e = 1 - (1 - p) ** 3;
+      setSal({
+        start: from.start + (to.start - from.start) * e,
+        len: from.len + (to.len - from.len) * e,
+        color: mixHex(from.color, to.color, e),
+        on: to.on,
+      });
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [selected, slices]);
 
   const hit = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -223,9 +253,6 @@ function CategoryRing({
       }
     }
   };
-
-  const ease = "900ms cubic-bezier(0.22, 1, 0.36, 1)";
-  const ringTransition = `stroke-dasharray ${ease}, stroke-dashoffset ${ease}, stroke ${ease}, opacity 380ms ease, filter ${ease}`;
 
   return (
     <svg
@@ -263,7 +290,7 @@ function CategoryRing({
             style={{
               opacity: selected ? 0.22 : 1,
               filter: selected ? "none" : glowFilter(a.color),
-              transition: ringTransition,
+              transition: "opacity 380ms ease, filter 380ms ease",
             }}
           />
         ))}
@@ -272,20 +299,30 @@ function CategoryRing({
           cy={cx}
           r={r}
           fill="none"
-          stroke={sal?.color ?? "transparent"}
+          stroke={sal.color}
           strokeWidth={stroke}
           strokeLinecap="round"
-          strokeDasharray={`${Math.max(0.01, (sal?.len ?? 0) * shown)} ${c}`}
-          strokeDashoffset={-((sal?.start ?? 0) * shown)}
+          strokeDasharray={`${Math.max(0.01, sal.len * shown)} ${c}`}
+          strokeDashoffset={-sal.start * shown}
           style={{
-            opacity: sal ? 1 : 0,
-            filter: sal ? glowFilter(sal.color) : "none",
-            transition: ringTransition,
+            opacity: sal.on ? 1 : 0,
+            filter: sal.on ? glowFilter(sal.color) : "none",
           }}
         />
       </g>
     </svg>
   );
+}
+
+function mixHex(a: string, b: string, t: number) {
+  const pa = a.replace("#", "");
+  const pb = b.replace("#", "");
+  if (pa.length !== 6 || pb.length !== 6) return t > 0.5 ? b : a;
+  const mix = (i: number) =>
+    Math.round(parseInt(pa.slice(i, i + 2), 16) * (1 - t) + parseInt(pb.slice(i, i + 2), 16) * t)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${mix(0)}${mix(2)}${mix(4)}`;
 }
 
 function glowFilter(hex: string): string {
