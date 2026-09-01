@@ -132,15 +132,15 @@ export function DataView({
 
         <div className="mt-5 grid grid-cols-3 gap-2">
           <Stat
-            label={period === "month" ? "Mensile" : "Annuale"}
-            value={formatEuroCompact(period === "month" ? monthly : yearly)}
+            label={period === "month" ? "Addebiti mese" : "Addebiti anno"}
+            value={formatEuroCompact(total)}
           />
-          <Stat
-            label={period === "month" ? "Annuale" : "Mensile"}
-            value={formatEuroCompact(period === "month" ? yearly : monthly)}
-          />
-          <Stat label="Categorie" value={String(slices.length)} />
+          <Stat label="Quota mese" value={formatEuroCompact(monthly)} />
+          <Stat label="Quota anno" value={formatEuroCompact(yearly)} />
         </div>
+        <p className="mt-2 text-center text-[10px] leading-snug text-muted">
+          Addebiti = prelievi veri. Quota = costo spalmato (annuali ÷ 12).
+        </p>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
           <RankList title="Più costosi" items={ranked.top} onOpen={onOpen} total={total} />

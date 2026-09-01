@@ -5,7 +5,6 @@ import { ChartBackdrop } from "./chart-backdrop";
 import { cn } from "@/lib/cn";
 import {
   activeMonthlyTotal,
-  activePriceStats,
   computePeriodSpend,
   yearlyProjection,
   type SpendPeriod,
@@ -38,10 +37,6 @@ export function HomeView({
   const spend = useMemo(
     () => computePeriodSpend(subscriptions, period),
     [subscriptions, period],
-  );
-  const stats = useMemo(
-    () => activePriceStats(subscriptions),
-    [subscriptions],
   );
   const monthly = activeMonthlyTotal(subscriptions);
   const yearly = yearlyProjection(subscriptions);
@@ -85,10 +80,10 @@ export function HomeView({
               {formatEuroCompact(spend.paid)}
             </p>
             <p className="mt-2 text-[11px] leading-snug text-muted">
-              {period === "month" ? "Già addebitato questo mese" : "Già addebitato quest’anno"}
+              {period === "month" ? "Usciti dal conto questo mese" : "Usciti dal conto quest’anno"}
             </p>
             <p className="mt-1.5 text-[11px] tabular-nums text-cyan">
-              di {formatEuroCompact(spend.due)} · {pct}%
+              {formatEuroCompact(spend.due)} in scadenza · {pct}%
             </p>
           </div>
           </div>
@@ -106,13 +101,16 @@ export function HomeView({
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2">
-          <Stat label="Attivi" value={String(stats.count)} />
           <Stat
-            label={period === "month" ? "Spesa annuale" : "Spesa mensile"}
-            value={formatEuroCompact(period === "month" ? yearly : monthly)}
+            label={period === "month" ? "Addebiti mese" : "Addebiti anno"}
+            value={formatEuroCompact(spend.due)}
           />
-          <Stat label="Media" value={formatEuroCompact(stats.mid)} />
+          <Stat label="Quota mese" value={formatEuroCompact(monthly)} />
+          <Stat label="Quota anno" value={formatEuroCompact(yearly)} />
         </div>
+        <p className="mt-2 text-center text-[10px] leading-snug text-muted">
+          Addebiti = prelievi veri. Quota = costo spalmato (annuali ÷ 12).
+        </p>
 
         <div className="mt-5 flex rounded-full bg-white/6 p-1">
           <Chip wide active={lane === "subs"} onClick={() => setLane("subs")}>
@@ -178,6 +176,7 @@ function SpendRing({ percent, active }: { percent: number; active: boolean }) {
           strokeLinecap="round"
           strokeDasharray={`${track} ${c}`}
         />
+        {fill >= 2 ? (
         <circle
           cx={cx}
           cy={cx}
@@ -193,6 +192,7 @@ function SpendRing({ percent, active }: { percent: number; active: boolean }) {
             transition: "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1)",
           }}
         />
+        ) : null}
       </g>
     </svg>
   );
