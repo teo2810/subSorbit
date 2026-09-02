@@ -136,25 +136,44 @@ export function BottomNav({
           onClick={() => onTab("orbit")}
           icon={<Orbit className="size-5" strokeWidth={tab === "orbit" ? 2.4 : 1.8} />}
         />
-        <button
-          type="button"
-          onClick={add}
-          aria-label="Aggiungi abbonamento"
-          className="fab-sun relative z-20 -mt-8 mb-1 flex size-[58px] items-center justify-center rounded-full text-void"
-          style={{
-            transform: hit ? "scale(0.72)" : "scale(1)",
-            transition: "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)",
-          }}
-        >
-          <Plus
-            className="size-7"
-            strokeWidth={2.6}
+        <div className="relative z-20 -mt-8 mb-1 size-[58px] shrink-0">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 rounded-full"
             style={{
-              transform: hit ? "rotate(90deg)" : "rotate(0deg)",
-              transition: "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)",
+              width: 96,
+              height: 96,
+              marginLeft: -48,
+              marginTop: -48,
+              background:
+                "radial-gradient(circle, rgba(56,232,255,0.6) 0%, rgba(56,232,255,0.18) 48%, transparent 72%)",
+              opacity: hit ? 1 : 0,
+              transform: hit ? "scale(1)" : "scale(0.5)",
+              filter: "blur(2px)",
+              transition:
+                "opacity 200ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1)",
             }}
           />
-        </button>
+          <button
+            type="button"
+            onClick={add}
+            aria-label="Aggiungi abbonamento"
+            className="fab-sun relative flex size-[58px] items-center justify-center rounded-full text-void"
+            style={{
+              transform: hit ? "scale(0.72)" : "scale(1)",
+              transition: "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)",
+            }}
+          >
+            <Plus
+              className="size-7"
+              strokeWidth={2.6}
+              style={{
+                transform: hit ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)",
+              }}
+            />
+          </button>
+        </div>
         <NavBtn
           refEl={(el) => {
             btnRefs.current.calendar = el;
