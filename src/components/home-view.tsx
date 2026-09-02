@@ -33,6 +33,8 @@ export function HomeView({
 }) {
   const [period, setPeriod] = useState<SpendPeriod>("month");
   const [lane, setLane] = useState<"subs" | "once">("subs");
+  const [sort, setSort] = useState<"renewal" | "price" | "name">("renewal");
+  const [desc, setDesc] = useState(false);
 
   const spend = useMemo(
     () => computePeriodSpend(subscriptions, period),
@@ -63,7 +65,26 @@ export function HomeView({
   }, []);
 
   const pct = Math.round(spend.percent * 100);
-  const items = lane === "subs" ? recurring : once;
+  const items = useMemo(() => {
+    const list = (lane === "subs" ? recurring : once).slice();
+    const dir = desc ? -1 : 1;
+    list.sort((a, b) => {
+      const st = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+      if (st) return st;
+      if (sort === "renewal") return dir * a.nextRenewal.localeCompare(b.nextRenewal);
+      if (sort === "price") return dir * (a.price - b.price);
+      return dir * a.name.localeCompare(b.name, "it", { sensitivity: "base" });
+    });
+    return list;
+  }, [lane, recurring, once, sort, desc]);
+
+  const tapSort = (id: typeof sort) => {
+    if (sort === id) setDesc((d) => !d);
+    else {
+      setSort(id);
+      setDesc(id === "price");
+    }
+  };
 
   return (
     <div className="mx-auto flex h-full w-full max-w-[520px] flex-col">
@@ -121,7 +142,33 @@ export function HomeView({
           </Chip>
         </div>
 
-        <div className="mt-3 space-y-2">
+        <div className="mt-2 flex justify-end gap-1">
+          {(
+            [
+              ["renewal", "Rinnovo"],
+              ["price", "Prezzo"],
+              ["name", "A–Z"],
+            ] as const
+          ).map(([id, label]) => {
+            const on = sort === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => tapSort(id)}
+                className={cn(
+                  "h-7 rounded-full px-2.5 text-[10px] glow-tap",
+                  on ? "bg-white/10 text-fg" : "text-faint",
+                )}
+              >
+                {label}
+                {on ? (desc ? " ↓" : " ↑") : ""}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-2 space-y-2">
           {items.length === 0 ? (
             <p className="pt-8 text-center text-sm text-muted">
               {lane === "subs"
