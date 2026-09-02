@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ScreenHeader } from "./orbit-mark";
 import { SubCard } from "./sub-card";
 import { ChartBackdrop } from "./chart-backdrop";
+import { GlowSwitch, PeriodSwitch } from "./period-switch";
 import { cn } from "@/lib/cn";
 import {
   activeMonthlyTotal,
@@ -111,14 +112,7 @@ export function HomeView({
         </div>
 
         <div className="mt-2 flex justify-center">
-          <div data-period-swipe className="pill-in flex rounded-full bg-white/6 p-1">
-            <Chip active={period === "month"} onClick={() => setPeriod("month")}>
-              Mese
-            </Chip>
-            <Chip active={period === "year"} onClick={() => setPeriod("year")}>
-              Anno
-            </Chip>
-          </div>
+          <PeriodSwitch period={period} onChange={setPeriod} />
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2">
@@ -133,13 +127,16 @@ export function HomeView({
           Addebiti = prelievi veri. Quota = costo spalmato (annuali ÷ 12).
         </p>
 
-        <div className="mt-5 flex rounded-full bg-white/6 p-1">
-          <Chip wide active={lane === "subs"} onClick={() => setLane("subs")}>
-            Abbonamenti
-          </Chip>
-          <Chip wide active={lane === "once"} onClick={() => setLane("once")}>
-            Una tantum
-          </Chip>
+        <div className="mt-5">
+          <GlowSwitch
+            wide
+            value={lane}
+            onChange={setLane}
+            options={[
+              { id: "subs", label: "Abbonamenti" },
+              { id: "once", label: "Una tantum" },
+            ]}
+          />
         </div>
 
         <div className="mt-2 flex justify-end gap-1">
@@ -253,32 +250,6 @@ function SpendRing({ percent, active }: { percent: number; active: boolean }) {
         ) : null}
       </g>
     </svg>
-  );
-}
-
-function Chip({
-  active,
-  onClick,
-  children,
-  wide,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: string;
-  wide?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "h-9 rounded-full px-4 font-display text-xs font-medium glow-tap",
-        wide && "flex-1",
-        active ? "bg-cyan text-void" : "text-muted",
-      )}
-    >
-      {children}
-    </button>
   );
 }
 

@@ -171,12 +171,15 @@ export function SubForm({
                 />
               </GlassField>
               <GlassField label="Data di attivazione">
-                <input
-                  type="date"
-                  value={startedAt}
-                  onChange={(e) => setStartedAt(e.target.value)}
-                  className="glass-field h-10 w-full px-3 text-sm"
-                />
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={startedAt}
+                    onChange={(e) => setStartedAt(e.target.value)}
+                    className="glass-field h-10 w-full appearance-none px-3 pr-10 text-sm [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                  />
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
+                </div>
               </GlassField>
               <GlassField label="Categoria">
                 <GlassSelect

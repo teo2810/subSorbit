@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ScreenHeader } from "./orbit-mark";
 import { ChartBackdrop } from "./chart-backdrop";
+import { PeriodSwitch } from "./period-switch";
 import { BrandBadge } from "@/lib/logos";
 import { cn } from "@/lib/cn";
 import {
@@ -92,14 +93,7 @@ export function DataView({
         </div>
 
         <div className="mt-2 flex justify-center">
-          <div data-period-swipe className="pill-in flex rounded-full bg-white/6 p-1">
-            <Chip active={period === "month"} onClick={() => setPeriod("month")}>
-              Mese
-            </Chip>
-            <Chip active={period === "year"} onClick={() => setPeriod("year")}>
-              Anno
-            </Chip>
-          </div>
+          <PeriodSwitch period={period} onChange={setPeriod} />
         </div>
 
         <div className="mt-4 flex flex-wrap justify-center gap-1.5">
@@ -490,29 +484,6 @@ function glowFilter(hex: string): string {
 
 function hexAlpha(hex: string, alphaHex: string): string {
   return /^#[0-9a-fA-F]{6}$/.test(hex) ? `${hex}${alphaHex}` : hex;
-}
-
-function Chip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "h-9 rounded-full px-4 font-display text-xs font-medium glow-tap",
-        active ? "bg-cyan text-void" : "text-muted",
-      )}
-    >
-      {children}
-    </button>
-  );
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

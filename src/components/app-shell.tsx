@@ -10,6 +10,7 @@ import { HomeView } from "./home-view";
 import { HowItWorks } from "./how-it-works";
 import { OrbitCanvas } from "./orbit-canvas";
 import { ScreenHeader } from "./orbit-mark";
+import { GlowSwitch } from "./period-switch";
 import { SettingsSheet } from "./settings-sheet";
 import { SubForm } from "./sub-form";
 import { cn } from "@/lib/cn";
@@ -225,20 +226,17 @@ export function AppShell() {
                     <CircleHelp className="size-3.5 text-cyan" />
                     Come funziona
                   </button>
-                  <div className="pointer-events-auto glass-soft flex h-10 items-center rounded-full p-1">
-                    {([0.5, 1, 2] as OrbitSpeed[]).map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => setOrbitSpeed(v)}
-                        className={cn(
-                          "h-9 min-w-10 rounded-full px-2 font-display text-[11px] font-medium glow-tap",
-                          orbitSpeed === v ? "bg-cyan text-void" : "text-muted",
-                        )}
-                      >
-                        {v}x
-                      </button>
-                    ))}
+                  <div className="pointer-events-auto">
+                    <GlowSwitch
+                      compact
+                      value={String(orbitSpeed) as "0.5" | "1" | "2"}
+                      onChange={(v) => setOrbitSpeed(Number(v) as OrbitSpeed)}
+                      options={[
+                        { id: "0.5", label: "0.5x" },
+                        { id: "1", label: "1x" },
+                        { id: "2", label: "2x" },
+                      ]}
+                    />
                   </div>
                 </div>
               </div>
