@@ -2,9 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { SpendPeriod } from "@/lib/domain";
 
-const EASE = "240ms cubic-bezier(0.22, 1, 0.36, 1)";
+const EASE = "280ms cubic-bezier(0.22, 1, 0.36, 1)";
 
-type Box = { l: number; w: number; stretch: boolean };
+type Box = { l: number; w: number };
 
 export function GlowSwitch<T extends string>({
   value,
@@ -13,6 +13,7 @@ export function GlowSwitch<T extends string>({
   swipe,
   wide,
   compact,
+  live = true,
 }: {
   value: T;
   onChange: (v: T) => void;
@@ -20,57 +21,52 @@ export function GlowSwitch<T extends string>({
   swipe?: boolean;
   wide?: boolean;
   compact?: boolean;
+  live?: boolean;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const prevRef = useRef(value);
-  const [pill, setPill] = useState<Box>({ l: 4, w: 72, stretch: false });
+  const readyRef = useRef(false);
+  const [pill, setPill] = useState<Box | null>(null);
+  const [motion, setMotion] = useState(false);
 
-  const measure = (id: T) => {
+  const measure = (id: T): Box | null => {
     const track = trackRef.current;
     const btn = btnRefs.current[id];
     if (!track || !btn) return null;
     const tr = track.getBoundingClientRect();
     const br = btn.getBoundingClientRect();
+    if (tr.width < 8 || br.width < 8) return null;
     return { l: br.left - tr.left, w: br.width };
   };
 
-  const span = (a: T, b: T) => {
-    const pa = measure(a);
-    const pb = measure(b);
-    if (!pa || !pb) return null;
-    const l = Math.min(pa.l, pb.l);
-    return { l, w: Math.max(pa.l + pa.w, pb.l + pb.w) - l };
+  const place = (animate: boolean) => {
+    const next = measure(value);
+    if (!next) return;
+    setMotion(animate && readyRef.current);
+    setPill(next);
+    readyRef.current = true;
   };
 
   useLayoutEffect(() => {
-    const next = measure(value);
-    if (!next) return;
-    const from = prevRef.current;
-    const jumped = from !== value;
-    prevRef.current = value;
-    if (!jumped) {
-      setPill({ ...next, stretch: false });
-      return;
-    }
-    const mid = span(from, value);
-    if (!mid) {
-      setPill({ ...next, stretch: false });
-      return;
-    }
-    setPill({ ...mid, stretch: true });
-    const t = window.setTimeout(() => setPill({ ...next, stretch: false }), 160);
-    return () => window.clearTimeout(t);
-  }, [value]);
+    if (!live) return;
+    place(true);
+  }, [value, live]);
 
   useEffect(() => {
-    const snap = () => {
-      const next = measure(value);
-      if (next) setPill({ ...next, stretch: false });
-    };
+    if (!live) return;
+    const track = trackRef.current;
+    if (!track) return;
+    const snap = () => place(false);
+    const ro = new ResizeObserver(snap);
+    ro.observe(track);
+    const id = requestAnimationFrame(() => requestAnimationFrame(snap));
     window.addEventListener("resize", snap);
-    return () => window.removeEventListener("resize", snap);
-  }, [value]);
+    return () => {
+      ro.disconnect();
+      cancelAnimationFrame(id);
+      window.removeEventListener("resize", snap);
+    };
+  }, [live, value]);
 
   return (
     <div
@@ -82,12 +78,13 @@ export function GlowSwitch<T extends string>({
         aria-hidden
         className="pointer-events-none absolute top-[3px] bottom-[3px] rounded-full bg-cyan"
         style={{
-          left: pill.l,
-          width: pill.w,
-          boxShadow: pill.stretch
-            ? "0 0 16px rgba(56,232,255,0.55)"
-            : "0 0 10px rgba(56,232,255,0.35)",
-          transition: `left ${EASE}, width ${EASE}, box-shadow 200ms ease`,
+          left: pill?.l ?? 4,
+          width: pill?.w ?? 0,
+          opacity: pill ? 1 : 0,
+          boxShadow: "0 0 10px rgba(56,232,255,0.35)",
+          transition: motion
+            ? `left ${EASE}, width ${EASE}, opacity 160ms ease`
+            : "none",
         }}
       />
       {options.map((opt) => {
@@ -119,15 +116,18 @@ export function GlowSwitch<T extends string>({
 export function PeriodSwitch({
   period,
   onChange,
+  live = true,
 }: {
   period: SpendPeriod;
   onChange: (p: SpendPeriod) => void;
+  live?: boolean;
 }) {
   return (
     <GlowSwitch
       value={period}
       onChange={onChange}
       swipe
+      live={live}
       options={[
         { id: "month", label: "Mese" },
         { id: "year", label: "Anno" },

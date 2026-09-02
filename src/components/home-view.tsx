@@ -112,7 +112,7 @@ export function HomeView({
         </div>
 
         <div className="mt-2 flex justify-center">
-          <PeriodSwitch period={period} onChange={setPeriod} />
+          <PeriodSwitch period={period} onChange={setPeriod} live={active} />
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-2">
@@ -130,6 +130,7 @@ export function HomeView({
         <div className="mt-5">
           <GlowSwitch
             wide
+            live={active}
             value={lane}
             onChange={setLane}
             options={[

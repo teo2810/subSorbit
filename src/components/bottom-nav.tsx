@@ -1,4 +1,10 @@
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { CalendarDays, House, Orbit, PieChart, Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { TabId } from "@/lib/types";
@@ -10,7 +16,8 @@ const TABS: { id: TabId; label: string; icon: typeof House }[] = [
   { id: "data", label: "Dati", icon: PieChart },
 ];
 
-const EASE = "240ms cubic-bezier(0.22, 1, 0.36, 1)";
+const LEFT: TabId[] = ["home", "orbit"];
+const EASE = "280ms cubic-bezier(0.22, 1, 0.36, 1)";
 
 export function BottomNav({
   tab,
@@ -24,7 +31,10 @@ export function BottomNav({
   const barRef = useRef<HTMLDivElement>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const prevRef = useRef(tab);
-  const [pill, setPill] = useState({ l: 8, w: 56, stretch: false });
+  const readyRef = useRef(false);
+  const [pill, setPill] = useState<{ l: number; w: number } | null>(null);
+  const [motion, setMotion] = useState(false);
+  const [hit, setHit] = useState(false);
 
   const measure = (id: TabId) => {
     const bar = barRef.current;
@@ -32,34 +42,24 @@ export function BottomNav({
     if (!bar || !btn) return null;
     const br = bar.getBoundingClientRect();
     const el = btn.getBoundingClientRect();
+    if (el.width < 8) return null;
     return { l: el.left - br.left, w: el.width };
   };
 
-  useLayoutEffect(() => {
-    const next = measure(tab);
+  const place = (id: TabId, animate: boolean) => {
+    const next = measure(id);
     if (!next) return;
+    setMotion(animate && readyRef.current);
+    setPill(next);
+    readyRef.current = true;
+  };
+
+  useLayoutEffect(() => {
     const from = prevRef.current;
-    const jumped = from !== tab;
+    const sameSide =
+      LEFT.includes(from) === LEFT.includes(tab) && from !== tab;
     prevRef.current = tab;
-    if (!jumped) {
-      setPill({ ...next, stretch: false });
-      return;
-    }
-    const a = measure(from);
-    const mid =
-      a && next
-        ? {
-            l: Math.min(a.l, next.l),
-            w: Math.max(a.l + a.w, next.l + next.w) - Math.min(a.l, next.l),
-          }
-        : null;
-    if (!mid) {
-      setPill({ ...next, stretch: false });
-      return;
-    }
-    setPill({ ...mid, stretch: true });
-    const t = window.setTimeout(() => setPill({ ...next, stretch: false }), 160);
-    return () => window.clearTimeout(t);
+    place(tab, sameSide);
   }, [tab]);
 
   useEffect(() => {
@@ -69,8 +69,7 @@ export function BottomNav({
         ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
         : 0;
       document.documentElement.style.setProperty("--nav-shift", `${inset}px`);
-      const next = measure(tab);
-      if (next) setPill({ ...next, stretch: false });
+      place(tab, false);
     };
     pin();
     window.visualViewport?.addEventListener("resize", pin);
@@ -82,6 +81,12 @@ export function BottomNav({
       window.removeEventListener("resize", pin);
     };
   }, [tab]);
+
+  const add = () => {
+    setHit(true);
+    window.setTimeout(() => setHit(false), 340);
+    onAdd();
+  };
 
   return (
     <nav
@@ -99,12 +104,13 @@ export function BottomNav({
           aria-hidden
           className="pointer-events-none absolute top-2 bottom-2 rounded-2xl bg-cyan/18"
           style={{
-            left: pill.l,
-            width: pill.w,
-            boxShadow: pill.stretch
-              ? "0 0 18px rgba(56,232,255,0.28)"
-              : "0 0 10px rgba(56,232,255,0.16)",
-            transition: `left ${EASE}, width ${EASE}, box-shadow 200ms ease`,
+            left: pill?.l ?? 12,
+            width: pill?.w ?? 0,
+            opacity: pill ? 1 : 0,
+            boxShadow: "0 0 10px rgba(56,232,255,0.16)",
+            transition: motion
+              ? `left ${EASE}, width ${EASE}, opacity 160ms ease`
+              : "none",
           }}
         />
         <NavBtn
@@ -127,9 +133,17 @@ export function BottomNav({
         />
         <button
           type="button"
-          onClick={onAdd}
+          onClick={add}
           aria-label="Aggiungi abbonamento"
-          className="fab-sun relative z-10 -mt-8 mb-1 flex size-[58px] items-center justify-center rounded-full text-void transition-transform duration-200 ease-out active:scale-90"
+          className="fab-sun relative z-10 -mt-8 mb-1 flex size-[58px] items-center justify-center rounded-full text-void"
+          style={{
+            transform: hit ? "scale(0.86) rotate(90deg)" : "scale(1) rotate(0deg)",
+            boxShadow: hit
+              ? "0 0 0 12px rgba(56,232,255,0.22), 0 0 28px rgba(56,232,255,0.65)"
+              : undefined,
+            transition:
+              "transform 280ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 280ms ease",
+          }}
         >
           <Plus className="size-7" strokeWidth={2.6} />
         </button>

@@ -93,7 +93,7 @@ export function DataView({
         </div>
 
         <div className="mt-2 flex justify-center">
-          <PeriodSwitch period={period} onChange={setPeriod} />
+          <PeriodSwitch period={period} onChange={setPeriod} live={active} />
         </div>
 
         <div className="mt-4 flex flex-wrap justify-center gap-1.5">

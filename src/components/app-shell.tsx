@@ -229,6 +229,7 @@ export function AppShell() {
                   <div className="pointer-events-auto">
                     <GlowSwitch
                       compact
+                      live={tab === "orbit"}
                       value={String(orbitSpeed) as "0.5" | "1" | "2"}
                       onChange={(v) => setOrbitSpeed(Number(v) as OrbitSpeed)}
                       options={[
