@@ -92,7 +92,7 @@ export function BottomNav({
       onAdd();
       setHit(false);
       busy.current = false;
-    }, 420);
+    }, 480);
   };
 
   return (
@@ -136,32 +136,42 @@ export function BottomNav({
           onClick={() => onTab("orbit")}
           icon={<Orbit className="size-5" strokeWidth={tab === "orbit" ? 2.4 : 1.8} />}
         />
-        <div className="relative z-20 -mt-8 mb-1 size-[58px] shrink-0">
-          <span
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 rounded-full"
-            style={{
-              width: 96,
-              height: 96,
-              marginLeft: -48,
-              marginTop: -48,
-              background:
-                "radial-gradient(circle, rgba(56,232,255,0.6) 0%, rgba(56,232,255,0.18) 48%, transparent 72%)",
-              opacity: hit ? 1 : 0,
-              transform: hit ? "scale(1)" : "scale(0.5)",
-              filter: "blur(2px)",
-              transition:
-                "opacity 200ms ease, transform 200ms cubic-bezier(0.22, 1, 0.36, 1)",
-            }}
-          />
+        <div className="relative z-20 -mt-8 mb-1 size-[58px] shrink-0 overflow-visible">
+          <style>{`
+            @keyframes orbit-fab-ripple {
+              0% { transform: scale(0.35); opacity: 0.85; }
+              100% { transform: scale(2.35); opacity: 0; }
+            }
+          `}</style>
+          {hit ? (
+            <>
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 size-[58px] -ml-[29px] -mt-[29px] rounded-full"
+                style={{
+                  border: "2px solid rgba(56,232,255,0.95)",
+                  boxShadow: "0 0 18px rgba(56,232,255,0.55)",
+                  animation: "orbit-fab-ripple 480ms ease-out forwards",
+                }}
+              />
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 size-[58px] -ml-[29px] -mt-[29px] rounded-full"
+                style={{
+                  border: "2px solid rgba(56,232,255,0.55)",
+                  animation: "orbit-fab-ripple 480ms ease-out 90ms forwards",
+                }}
+              />
+            </>
+          ) : null}
           <button
             type="button"
             onClick={add}
             aria-label="Aggiungi abbonamento"
             className="fab-sun relative flex size-[58px] items-center justify-center rounded-full text-void"
             style={{
-              transform: hit ? "scale(0.72)" : "scale(1)",
-              transition: "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)",
+              transform: hit ? "scale(0.92)" : "scale(1)",
+              transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
             }}
           >
             <Plus
@@ -169,7 +179,7 @@ export function BottomNav({
               strokeWidth={2.6}
               style={{
                 transform: hit ? "rotate(90deg)" : "rotate(0deg)",
-                transition: "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)",
+                transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
               }}
             />
           </button>
