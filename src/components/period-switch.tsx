@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { SpendPeriod } from "@/lib/domain";
 
-const EASE = "280ms cubic-bezier(0.22, 1, 0.36, 1)";
+const EASE = "left 320ms cubic-bezier(0.22, 1, 0.36, 1), width 320ms cubic-bezier(0.22, 1, 0.36, 1)";
 
 type Box = { l: number; w: number };
 
@@ -25,9 +25,8 @@ export function GlowSwitch<T extends string>({
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const readyRef = useRef(false);
   const [pill, setPill] = useState<Box | null>(null);
-  const [motion, setMotion] = useState(false);
+  const [armed, setArmed] = useState(false);
 
   const measure = (id: T): Box | null => {
     const track = trackRef.current;
@@ -39,31 +38,34 @@ export function GlowSwitch<T extends string>({
     return { l: br.left - tr.left, w: br.width };
   };
 
-  const place = (animate: boolean) => {
-    const next = measure(value);
-    if (!next) return;
-    setMotion(animate && readyRef.current);
-    setPill(next);
-    readyRef.current = true;
-  };
-
   useLayoutEffect(() => {
-    if (!live) return;
-    place(true);
+    if (!live) {
+      setArmed(false);
+      return;
+    }
+    const next = measure(value);
+    if (next) setPill(next);
   }, [value, live]);
+
+  useEffect(() => {
+    if (!live || !pill || armed) return;
+    const id = requestAnimationFrame(() => setArmed(true));
+    return () => cancelAnimationFrame(id);
+  }, [live, pill, armed]);
 
   useEffect(() => {
     if (!live) return;
     const track = trackRef.current;
     if (!track) return;
-    const snap = () => place(false);
+    const snap = () => {
+      const next = measure(value);
+      if (next) setPill(next);
+    };
     const ro = new ResizeObserver(snap);
     ro.observe(track);
-    const id = requestAnimationFrame(() => requestAnimationFrame(snap));
     window.addEventListener("resize", snap);
     return () => {
       ro.disconnect();
-      cancelAnimationFrame(id);
       window.removeEventListener("resize", snap);
     };
   }, [live, value]);
@@ -72,7 +74,7 @@ export function GlowSwitch<T extends string>({
     <div
       ref={trackRef}
       data-period-swipe={swipe ? "" : undefined}
-      className="pill-in relative isolate flex rounded-full bg-white/6 p-1"
+      className="relative isolate flex rounded-full bg-white/6 p-1"
     >
       <span
         aria-hidden
@@ -81,10 +83,8 @@ export function GlowSwitch<T extends string>({
           left: pill?.l ?? 4,
           width: pill?.w ?? 0,
           opacity: pill ? 1 : 0,
-          boxShadow: "0 0 10px rgba(56,232,255,0.35)",
-          transition: motion
-            ? `left ${EASE}, width ${EASE}, opacity 160ms ease`
-            : "none",
+          boxShadow: "0 0 12px rgba(56,232,255,0.4)",
+          transition: armed ? EASE : "none",
         }}
       />
       {options.map((opt) => {
@@ -98,7 +98,7 @@ export function GlowSwitch<T extends string>({
             type="button"
             onClick={() => onChange(opt.id)}
             className={cn(
-              "relative z-10 rounded-full font-display font-medium glow-tap",
+              "relative z-10 rounded-full font-display font-medium glow-tap transition-colors duration-200",
               compact ? "h-8 min-w-10 px-2 text-[11px]" : "h-9 px-4 text-xs",
               wide && "flex-1",
               !wide && !compact && "min-w-[72px]",

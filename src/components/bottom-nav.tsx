@@ -16,8 +16,8 @@ const TABS: { id: TabId; label: string; icon: typeof House }[] = [
   { id: "data", label: "Dati", icon: PieChart },
 ];
 
-const LEFT: TabId[] = ["home", "orbit"];
-const EASE = "280ms cubic-bezier(0.22, 1, 0.36, 1)";
+const EASE =
+  "left 320ms cubic-bezier(0.22, 1, 0.36, 1), width 320ms cubic-bezier(0.22, 1, 0.36, 1)";
 
 export function BottomNav({
   tab,
@@ -30,10 +30,8 @@ export function BottomNav({
 }) {
   const barRef = useRef<HTMLDivElement>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
-  const prevRef = useRef(tab);
-  const readyRef = useRef(false);
   const [pill, setPill] = useState<{ l: number; w: number } | null>(null);
-  const [motion, setMotion] = useState(false);
+  const [armed, setArmed] = useState(false);
   const [hit, setHit] = useState(false);
 
   const measure = (id: TabId) => {
@@ -46,21 +44,16 @@ export function BottomNav({
     return { l: el.left - br.left, w: el.width };
   };
 
-  const place = (id: TabId, animate: boolean) => {
-    const next = measure(id);
-    if (!next) return;
-    setMotion(animate && readyRef.current);
-    setPill(next);
-    readyRef.current = true;
-  };
-
   useLayoutEffect(() => {
-    const from = prevRef.current;
-    const sameSide =
-      LEFT.includes(from) === LEFT.includes(tab) && from !== tab;
-    prevRef.current = tab;
-    place(tab, sameSide);
+    const next = measure(tab);
+    if (next) setPill(next);
   }, [tab]);
+
+  useEffect(() => {
+    if (!pill || armed) return;
+    const id = requestAnimationFrame(() => setArmed(true));
+    return () => cancelAnimationFrame(id);
+  }, [pill, armed]);
 
   useEffect(() => {
     const pin = () => {
@@ -69,22 +62,30 @@ export function BottomNav({
         ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
         : 0;
       document.documentElement.style.setProperty("--nav-shift", `${inset}px`);
-      place(tab, false);
+    };
+    const snap = () => {
+      const next = measure(tab);
+      if (next) setPill(next);
+    };
+    const onWin = () => {
+      pin();
+      snap();
     };
     pin();
-    window.visualViewport?.addEventListener("resize", pin);
+    snap();
+    window.visualViewport?.addEventListener("resize", onWin);
     window.visualViewport?.addEventListener("scroll", pin);
-    window.addEventListener("resize", pin);
+    window.addEventListener("resize", onWin);
     return () => {
-      window.visualViewport?.removeEventListener("resize", pin);
+      window.visualViewport?.removeEventListener("resize", onWin);
       window.visualViewport?.removeEventListener("scroll", pin);
-      window.removeEventListener("resize", pin);
+      window.removeEventListener("resize", onWin);
     };
   }, [tab]);
 
   const add = () => {
     setHit(true);
-    window.setTimeout(() => setHit(false), 340);
+    window.setTimeout(() => setHit(false), 420);
     onAdd();
   };
 
@@ -107,10 +108,8 @@ export function BottomNav({
             left: pill?.l ?? 12,
             width: pill?.w ?? 0,
             opacity: pill ? 1 : 0,
-            boxShadow: "0 0 10px rgba(56,232,255,0.16)",
-            transition: motion
-              ? `left ${EASE}, width ${EASE}, opacity 160ms ease`
-              : "none",
+            boxShadow: "0 0 12px rgba(56,232,255,0.2)",
+            transition: armed ? EASE : "none",
           }}
         />
         <NavBtn
@@ -136,16 +135,24 @@ export function BottomNav({
           onClick={add}
           aria-label="Aggiungi abbonamento"
           className="fab-sun relative z-10 -mt-8 mb-1 flex size-[58px] items-center justify-center rounded-full text-void"
-          style={{
-            transform: hit ? "scale(0.86) rotate(90deg)" : "scale(1) rotate(0deg)",
-            boxShadow: hit
-              ? "0 0 0 12px rgba(56,232,255,0.22), 0 0 28px rgba(56,232,255,0.65)"
-              : undefined,
-            transition:
-              "transform 280ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 280ms ease",
-          }}
         >
-          <Plus className="size-7" strokeWidth={2.6} />
+          <span
+            className="pointer-events-none absolute inset-[-6px] rounded-full border border-cyan/50"
+            style={{
+              opacity: hit ? 1 : 0,
+              transform: hit ? "scale(1.18)" : "scale(0.7)",
+              transition:
+                "transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease",
+            }}
+          />
+          <Plus
+            className="size-7"
+            strokeWidth={2.6}
+            style={{
+              transform: hit ? "rotate(90deg) scale(0.9)" : "rotate(0deg) scale(1)",
+              transition: "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+            }}
+          />
         </button>
         <NavBtn
           refEl={(el) => {
