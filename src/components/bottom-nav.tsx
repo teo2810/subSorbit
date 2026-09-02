@@ -5,10 +5,9 @@ import {
   useRef,
   useState,
 } from "react";
-import { CalendarDays, House, Orbit, PieChart } from "lucide-react";
+import { CalendarDays, House, Orbit, PieChart, Plus } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { TabId } from "@/lib/types";
-import { OrbitSun } from "./orbit-mark";
 
 const TABS: { id: TabId; label: string; icon: typeof House }[] = [
   { id: "home", label: "Home", icon: House },
@@ -173,18 +172,33 @@ export function BottomNav({
             type="button"
             onClick={add}
             aria-label="Aggiungi abbonamento"
-            className="relative flex size-[58px] items-center justify-center rounded-full"
+            className="relative flex size-[58px] items-center justify-center overflow-hidden rounded-full text-void"
             style={{
+              boxShadow:
+                "0 0 18px rgba(34,211,238,0.55), 0 8px 18px rgba(14,165,233,0.28)",
               transform: hit ? "scale(0.92)" : "scale(1)",
               transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
             }}
           >
             <span
-              className="flex size-[58px] items-center justify-center"
-              style={{ animation: "orbit-sun-spin 14s linear infinite" }}
-            >
-              <OrbitSun size={58} pulse />
-            </span>
+              aria-hidden
+              className="absolute inset-0 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle at 34% 30%, #ffffff 0%, #e0fbff 16%, #67e8f9 38%, #22d3ee 62%, #0891b2 100%)",
+                animation: "orbit-sun-spin 10s linear infinite",
+              }}
+            />
+            <span
+              aria-hidden
+              className="absolute inset-0 rounded-full"
+              style={{
+                background:
+                  "radial-gradient(circle at 68% 72%, transparent 40%, rgba(8,145,178,0.35) 100%)",
+                animation: "orbit-sun-spin 10s linear infinite reverse",
+              }}
+            />
+            <Plus className="relative z-10 size-7" strokeWidth={2.6} />
           </button>
         </div>
         <NavBtn
