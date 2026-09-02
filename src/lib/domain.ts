@@ -47,38 +47,41 @@ export const CATEGORIES: { id: CategoryId; label: string }[] = [
   { id: "persona", label: "Cura persona" },
   { id: "animali", label: "Cura animali" },
   { id: "assicurazioni", label: "Assicurazioni" },
-  { id: "telefono", label: "Telefonia" },
+  { id: "telefono_mobile", label: "Telefonia mobile" },
+  { id: "telefono_fissa", label: "Telefonia fissa" },
   { id: "banca", label: "Banca" },
   { id: "altro", label: "Altro" },
 ];
 
 export const CATEGORY_COLORS: Record<string, string> = {
-  streaming: "#FF2B4A",
-  musica: "#3DFF6A",
-  podcast: "#FF7A12",
-  editoria: "#E8D48A",
-  cloud: "#2EE8FF",
-  ufficio: "#FF8A4D",
-  creativita: "#FF3DB4",
-  gestionale: "#2B7BFF",
-  sicurezza: "#6B5CFF",
-  web: "#A35CFF",
-  ia: "#00FF94",
-  gaming: "#8AFF00",
-  sport: "#FFE14A",
-  fitness: "#E14AFF",
-  cultura: "#6AA8FF",
-  ecommerce: "#FF9F14",
-  food: "#FF5E2B",
-  mobilita: "#00D46A",
-  travel: "#1A8CFF",
-  persona: "#FF4D8A",
-  animali: "#C6FF3D",
-  assicurazioni: "#4EE0FF",
-  telefono: "#7A4DFF",
+  streaming: "#FF2A40",
+  musica: "#00D24A",
+  podcast: "#FFBE00",
+  editoria: "#2B6BFF",
+  cloud: "#00B8A8",
+  ufficio: "#FF6E00",
+  creativita: "#FF2EB8",
+  gestionale: "#2038FF",
+  sicurezza: "#B0FF00",
+  web: "#FF1878",
+  ia: "#00E8D8",
+  gaming: "#8A00FF",
+  sport: "#F0FF00",
+  fitness: "#FF4A68",
+  cultura: "#4AA4FF",
+  ecommerce: "#FF9200",
+  food: "#FF3A16",
+  mobilita: "#3A18FF",
+  travel: "#0098FF",
+  persona: "#FF62C8",
+  animali: "#7CFF18",
+  assicurazioni: "#00D0FF",
+  telefono: "#C400FF",
+  telefono_mobile: "#C400FF",
+  telefono_fissa: "#00E8A0",
   banca: "#FFD400",
-  produttivita: "#FF8A4D",
-  altro: "#8B93A7",
+  produttivita: "#FF7A28",
+  altro: "#D8FF00",
 };
 
 export const FREQUENCIES: { id: Frequency; label: string; short: string }[] = [
@@ -94,13 +97,22 @@ export const STATUSES: { id: Status; label: string }[] = [
   { id: "cancelled", label: "Annullato" },
 ];
 
+export function normalizeCategory(id: string, name = ""): CategoryId {
+  if (id === "produttivita") return "ufficio";
+  if (id === "telefono") {
+    return /fibra|fissa|adsl|casa/i.test(name) ? "telefono_fissa" : "telefono_mobile";
+  }
+  if (CATEGORIES.some((c) => c.id === id)) return id as CategoryId;
+  return "altro";
+}
+
 export function categoryLabel(id: CategoryId | string): string {
-  if (id === "produttivita") return "Suite ufficio";
-  return CATEGORIES.find((c) => c.id === id)?.label ?? id;
+  const n = normalizeCategory(String(id));
+  return CATEGORIES.find((c) => c.id === n)?.label ?? String(id);
 }
 
 export function categoryColor(id: string): string {
-  return CATEGORY_COLORS[id] ?? "#64748B";
+  return CATEGORY_COLORS[normalizeCategory(id)] ?? "#D8FF00";
 }
 
 export function frequencyLabel(id: Frequency): string {
@@ -235,7 +247,7 @@ export function spendByCategory(
   for (const s of subs) {
     const value = cashInPeriod(s, period, from);
     if (value <= 0) continue;
-    const id = s.category === "produttivita" ? "ufficio" : s.category;
+    const id = normalizeCategory(s.category, s.name);
     map.set(id, (map.get(id) ?? 0) + value);
   }
   return [...map.entries()]
@@ -427,7 +439,7 @@ export function normalizeSubscription(raw: unknown, i = 0): Subscription | null 
   return {
     id: String(r.id || `imp-${Date.now()}-${i}`),
     name: String(r.name || "Abbonamento").slice(0, 80),
-    category: CATEGORIES.some((c) => c.id === cat) || cat === "produttivita" ? cat : "altro",
+    category: normalizeCategory(cat, String(r.name || "")),
     price,
     frequency: freq,
     nextRenewal: next,

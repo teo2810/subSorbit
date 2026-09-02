@@ -25,6 +25,8 @@ export type CategoryId =
   | "animali"
   | "assicurazioni"
   | "telefono"
+  | "telefono_mobile"
+  | "telefono_fissa"
   | "banca"
   | "produttivita"
   | "altro";

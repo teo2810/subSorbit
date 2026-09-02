@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { normalizeCategory } from "./domain";
 import { SEED } from "./seed";
-import type { Subscription } from "./types";
+import type { CategoryId, Subscription } from "./types";
 
 export type OrbitSpeed = 0.5 | 1 | 2;
 
@@ -25,10 +26,17 @@ interface AppState {
   resetDemo: () => void;
 }
 
+function migrateSub(s: Subscription): Subscription {
+  return {
+    ...s,
+    category: normalizeCategory(s.category, s.name) as CategoryId,
+  };
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
-      subscriptions: SEED,
+      subscriptions: SEED.map(migrateSub),
       seenGuide: false,
       seenWelcome: false,
       displayName: "Matteo",
@@ -39,13 +47,20 @@ export const useAppStore = create<AppState>()(
           typeof crypto !== "undefined" && crypto.randomUUID
             ? crypto.randomUUID()
             : `sub-${Date.now()}`;
-        set((s) => ({ subscriptions: [...s.subscriptions, { ...sub, id }] }));
+        set((s) => ({
+          subscriptions: [
+            ...s.subscriptions,
+            migrateSub({ ...sub, id } as Subscription),
+          ],
+        }));
         return id;
       },
       updateSubscription: (id, patch) =>
         set((s) => ({
           subscriptions: s.subscriptions.map((it) =>
-            it.id === id ? { ...it, ...patch } : it,
+            it.id === id
+              ? migrateSub({ ...it, ...patch })
+              : it,
           ),
         })),
       removeSubscription: (id) =>
@@ -59,14 +74,16 @@ export const useAppStore = create<AppState>()(
       setOrbitSpeed: (v) => set({ orbitSpeed: v }),
       replaceAll: (subs) =>
         set({
-          subscriptions: subs.filter(
-            (s) => s && typeof s.id === "string" && typeof s.name === "string",
-          ),
+          subscriptions: subs
+            .filter(
+              (s) => s && typeof s.id === "string" && typeof s.name === "string",
+            )
+            .map(migrateSub),
         }),
       clearSubscriptions: () => set({ subscriptions: [] }),
       resetDemo: () =>
         set({
-          subscriptions: SEED.map((s) => ({ ...s })),
+          subscriptions: SEED.map((s) => migrateSub({ ...s })),
           seenGuide: false,
           seenWelcome: false,
           displayName: "Matteo",
@@ -76,6 +93,15 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "orbit-pro-v2",
+      version: 3,
+      migrate: (persisted) => {
+        const p = persisted as AppState;
+        if (!p || !Array.isArray(p.subscriptions)) return persisted as AppState;
+        return {
+          ...p,
+          subscriptions: p.subscriptions.map(migrateSub),
+        };
+      },
       storage:
         typeof window === "undefined"
           ? undefined
