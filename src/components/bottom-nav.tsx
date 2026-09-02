@@ -5,9 +5,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { CalendarDays, House, Orbit, PieChart, Plus } from "lucide-react";
+import { CalendarDays, House, Orbit, PieChart } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { TabId } from "@/lib/types";
+import { OrbitSun } from "./orbit-mark";
 
 const TABS: { id: TabId; label: string; icon: typeof House }[] = [
   { id: "home", label: "Home", icon: House },
@@ -142,6 +143,10 @@ export function BottomNav({
               0% { transform: scale(0.35); opacity: 0.85; }
               100% { transform: scale(2.35); opacity: 0; }
             }
+            @keyframes orbit-sun-spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
           `}</style>
           {hit ? (
             <>
@@ -168,20 +173,18 @@ export function BottomNav({
             type="button"
             onClick={add}
             aria-label="Aggiungi abbonamento"
-            className="fab-sun relative flex size-[58px] items-center justify-center rounded-full text-void"
+            className="relative flex size-[58px] items-center justify-center rounded-full"
             style={{
               transform: hit ? "scale(0.92)" : "scale(1)",
               transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
             }}
           >
-            <Plus
-              className="size-7"
-              strokeWidth={2.6}
-              style={{
-                transform: hit ? "rotate(90deg)" : "rotate(0deg)",
-                transition: "transform 180ms cubic-bezier(0.22, 1, 0.36, 1)",
-              }}
-            />
+            <span
+              className="flex size-[58px] items-center justify-center"
+              style={{ animation: "orbit-sun-spin 14s linear infinite" }}
+            >
+              <OrbitSun size={58} pulse />
+            </span>
           </button>
         </div>
         <NavBtn
