@@ -92,7 +92,7 @@ export function BottomNav({
       onAdd();
       setHit(false);
       busy.current = false;
-    }, 280);
+    }, 420);
   };
 
   return (
@@ -105,7 +105,7 @@ export function BottomNav({
     >
       <div
         ref={barRef}
-        className="pointer-events-auto relative mx-auto flex max-w-[480px] items-end justify-between gap-1 rounded-xl px-3 pb-2 pt-2 glass"
+        className="pointer-events-auto relative mx-auto flex max-w-[480px] items-end justify-between gap-1 overflow-visible rounded-xl px-3 pb-2 pt-2 glass"
       >
         <span
           aria-hidden
@@ -140,23 +140,18 @@ export function BottomNav({
           type="button"
           onClick={add}
           aria-label="Aggiungi abbonamento"
-          className="fab-sun relative z-10 -mt-8 mb-1 flex size-[58px] items-center justify-center rounded-full text-void"
+          className="fab-sun relative z-20 -mt-8 mb-1 flex size-[58px] items-center justify-center rounded-full text-void"
+          style={{
+            transform: hit ? "scale(0.72)" : "scale(1)",
+            transition: "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)",
+          }}
         >
-          <span
-            className="pointer-events-none absolute inset-[-6px] rounded-full border border-cyan/50"
-            style={{
-              opacity: hit ? 1 : 0,
-              transform: hit ? "scale(1.18)" : "scale(0.7)",
-              transition:
-                "transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 320ms ease",
-            }}
-          />
           <Plus
             className="size-7"
             strokeWidth={2.6}
             style={{
-              transform: hit ? "rotate(90deg) scale(0.9)" : "rotate(0deg) scale(1)",
-              transition: "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)",
+              transform: hit ? "rotate(90deg)" : "rotate(0deg)",
+              transition: "transform 200ms cubic-bezier(0.22, 1, 0.36, 1)",
             }}
           />
         </button>
