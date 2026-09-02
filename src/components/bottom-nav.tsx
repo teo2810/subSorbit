@@ -33,6 +33,7 @@ export function BottomNav({
   const [pill, setPill] = useState<{ l: number; w: number } | null>(null);
   const [armed, setArmed] = useState(false);
   const [hit, setHit] = useState(false);
+  const busy = useRef(false);
 
   const measure = (id: TabId) => {
     const bar = barRef.current;
@@ -84,9 +85,14 @@ export function BottomNav({
   }, [tab]);
 
   const add = () => {
+    if (busy.current) return;
+    busy.current = true;
     setHit(true);
-    window.setTimeout(() => setHit(false), 420);
-    onAdd();
+    window.setTimeout(() => {
+      onAdd();
+      setHit(false);
+      busy.current = false;
+    }, 280);
   };
 
   return (
