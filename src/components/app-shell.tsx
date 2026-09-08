@@ -14,9 +14,9 @@ import { GlowSwitch } from "./period-switch";
 import { SettingsSheet } from "./settings-sheet";
 import { SubForm } from "./sub-form";
 import { cn } from "@/lib/cn";
-import { activeMonthlyTotal, daysUntilRenewal } from "@/lib/domain";
+import { activeMonthlyTotal, daysUntilRenewal, orbitUrgency } from "@/lib/domain";
 import { formatEuroCompact } from "@/lib/format";
-import { BrandBadge, preloadBrandIcons } from "@/lib/logos";
+import { BrandBadge, getBrand, preloadBrandIcons } from "@/lib/logos";
 import { useAppStore, type OrbitSpeed } from "@/lib/store";
 import type { StatusFilter, Subscription, TabId } from "@/lib/types";
 
@@ -435,10 +435,22 @@ function OrbitIconStrip({
         msOverflowStyle: "none",
       }}
     >
+      <style>{`
+        @keyframes strip-brand-pulse {
+          0%, 100% { filter: drop-shadow(0 0 2px var(--strip-glow)); }
+          50% { filter: drop-shadow(0 0 var(--strip-spread) var(--strip-glow)); }
+        }
+      `}</style>
       <div className="flex w-max items-center gap-2 px-3">
         {loop.map((s, i) => {
           const on = selectedId === s.id;
           const days = s.status === "active" ? daysUntilRenewal(s) : null;
+          const live = s.status === "active";
+          const u = live ? orbitUrgency(s) : 0;
+          const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
+          const dur = [3.8, 2.4, 1.5][step]!;
+          const spread = [8, 14, 20][step]!;
+          const tint = getBrand(s.brandKey).color || "#22d3ee";
           return (
             <button
               key={`${s.id}-${i}`}
@@ -447,12 +459,18 @@ function OrbitIconStrip({
               aria-label={s.name}
               className={cn(
                 "relative size-8 shrink-0 rounded-full",
-                on
-                  ? "icon-pulse z-10 ring-2 ring-cyan ring-offset-2 ring-offset-void"
-                  : selectedId
-                    ? "opacity-30"
-                    : "opacity-85",
+                on ? "z-10" : selectedId ? "opacity-30" : "opacity-90",
               )}
+              style={
+                live
+                  ? {
+                      animation: `strip-brand-pulse ${dur}s ease-in-out infinite`,
+                      ["--strip-glow"]: tint,
+                      ["--strip-spread"]: `${spread}px`,
+                      boxShadow: on ? `0 0 0 2px ${tint}` : undefined,
+                    }
+                  : undefined
+              }
             >
               <BrandBadge brandKey={s.brandKey} name={s.name} size={32} />
               {days !== null && days <= 7 && days < 9000 ? (

@@ -119,21 +119,21 @@ const GLOW_HEX: Record<string, string> = {
   spotify: "#1ED760",
   spotifypremium: "#1ED760",
   netflix: "#E50914",
-  disney: "#113CCF",
-  disneyplus: "#113CCF",
+  disney: "#6B8CFF",
+  disneyplus: "#6B8CFF",
   google: "#4285F4",
   googleone: "#4285F4",
   youtube: "#FF0000",
   youtubepremium: "#FF0000",
-  paramount: "#0064FF",
-  paramountplus: "#0064FF",
+  paramount: "#5B9BFF",
+  paramountplus: "#5B9BFF",
   now: "#00A3E0",
   nowtv: "#00A3E0",
   dazn: "#F5E642",
   sky: "#E2001A",
-  apple: "#A2AAAD",
+  apple: "#E4E7EA",
   icloud: "#3D95CE",
-  tim: "#002E6D",
+  tim: "#3D7CFF",
   timvision: "#E30613",
   uber: "#FFFFFF",
   uberone: "#FFFFFF",
@@ -144,7 +144,18 @@ const GLOW_HEX: Record<string, string> = {
 function glowRgb(color: string, brandKey?: string): string {
   const key = (brandKey || "").toLowerCase().replace(/[\s+_]/g, "");
   const src = GLOW_HEX[key] || color;
-  return hexRgb(src);
+  const [rs, gs, bs] = hexRgb(src).split(",").map((n) => Number(n.trim()));
+  let r = rs ?? 34;
+  let g = gs ?? 211;
+  let b = bs ?? 238;
+  const max = Math.max(r, g, b, 1);
+  if (max < 90) {
+    const k = 170 / max;
+    r = Math.min(255, Math.round(r * k));
+    g = Math.min(255, Math.round(g * k));
+    b = Math.min(255, Math.round(b * k));
+  }
+  return `${r}, ${g}, ${b}`;
 }
 
 function hash(n: number) {
