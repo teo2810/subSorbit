@@ -123,13 +123,21 @@ const GLOW_HEX: Record<string, string> = {
 function glowRgb(color: string, brandKey?: string): string {
   const src = (brandKey && GLOW_HEX[brandKey]) || color;
   const [rs, gs, bs] = hexRgb(src).split(",").map((n) => Number(n.trim()));
-  const r = rs ?? 34;
-  const g = gs ?? 211;
-  const b = bs ?? 238;
-  const l = (r + g + b) / 3;
-  if (l >= 70) return `${r}, ${g}, ${b}`;
-  const lift = 110;
-  return `${Math.min(255, r + lift)}, ${Math.min(255, g + lift)}, ${Math.min(255, b + lift)}`;
+  let r = rs ?? 34;
+  let g = gs ?? 211;
+  let b = bs ?? 238;
+  const max = Math.max(r, g, b, 1);
+  if (max < 48) {
+    r = 230;
+    g = 230;
+    b = 235;
+  } else if (max < 200) {
+    const k = 210 / max;
+    r = Math.min(255, Math.round(r * k));
+    g = Math.min(255, Math.round(g * k));
+    b = Math.min(255, Math.round(b * k));
+  }
+  return `${r}, ${g}, ${b}`;
 }
 
 function hash(n: number) {
@@ -681,49 +689,25 @@ export function OrbitCanvas({
           const u = Math.max(0, Math.min(1, b.urgency));
           const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
           const period = [3.6, 2.2, 1.35][step]!;
-          const amp = [0.14, 0.24, 0.38][step]!;
+          const amp = [0.16, 0.28, 0.42][step]!;
           const beat = 0.5 + 0.5 * Math.sin((now / 1000) * ((Math.PI * 2) / period));
           const rgb = glowRgb(b.color, b.brandKey);
-          const halo = b.pr * (1.35 + amp * beat * 2 + (focused ? 0.35 : 0));
-          const bloom = ctx.createRadialGradient(b.px, b.py, Math.max(1, b.pr * 0.85), b.px, b.py, halo);
+          const inner = Math.max(1, b.pr * 0.72);
+          const outer = b.pr * (1.75 + amp * beat * 1.6 + (focused ? 0.45 : 0));
+          const a = 0.38 + amp * beat * 0.5;
+          const bloom = ctx.createRadialGradient(b.px, b.py, inner, b.px, b.py, outer);
           bloom.addColorStop(0, `rgba(${rgb}, 0)`);
-          bloom.addColorStop(0.35, `rgba(${rgb}, ${0.18 + amp * beat})`);
-          bloom.addColorStop(0.72, `rgba(${rgb}, ${0.42 + amp * beat * 0.5})`);
+          bloom.addColorStop(0.22, `rgba(${rgb}, ${a * 0.25})`);
+          bloom.addColorStop(0.48, `rgba(${rgb}, ${a})`);
+          bloom.addColorStop(0.78, `rgba(${rgb}, ${a * 0.35})`);
           bloom.addColorStop(1, `rgba(${rgb}, 0)`);
           ctx.fillStyle = bloom;
           ctx.beginPath();
-          ctx.arc(b.px, b.py, halo, 0, Math.PI * 2);
+          ctx.arc(b.px, b.py, outer, 0, Math.PI * 2);
           ctx.fill();
         }
 
         drawBrand(ctx, b.brandKey, b.px, b.py, b.pr);
-
-        if (!b.paused && b.kind !== "trash") {
-          const u = Math.max(0, Math.min(1, b.urgency));
-          const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
-          const period = [3.6, 2.2, 1.35][step]!;
-          const amp = [0.14, 0.24, 0.38][step]!;
-          const beat = 0.5 + 0.5 * Math.sin((now / 1000) * ((Math.PI * 2) / period));
-          const rgb = glowRgb(b.color, b.brandKey);
-          ctx.strokeStyle = `rgba(${rgb}, ${0.4 + amp * beat})`;
-          ctx.lineWidth = Math.max(1.6, b.pr * (0.12 + amp * 0.2));
-          ctx.beginPath();
-          ctx.arc(b.px, b.py, b.pr + b.pr * amp * beat, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-        if (focused) {
-          const u = Math.max(0, Math.min(1, b.urgency));
-          const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
-          const period = [3.6, 2.2, 1.35][step]!;
-          const amp = [0.16, 0.26, 0.4][step]!;
-          const beat = 0.5 + 0.5 * Math.sin((now / 1000) * ((Math.PI * 2) / period));
-          const rgb = glowRgb(b.color, b.brandKey);
-          ctx.strokeStyle = `rgba(${rgb},${0.7 + amp * beat * 0.3})`;
-          ctx.lineWidth = Math.max(2.2, b.pr * 0.26);
-          ctx.beginPath();
-          ctx.arc(b.px, b.py, b.pr * (1.12 + amp * beat), 0, Math.PI * 2);
-          ctx.stroke();
-        }
         ctx.restore();
 
         if (sim.hoverId === b.id || sim.focusId === b.id) {
