@@ -108,14 +108,27 @@ function hexRgb(color: string): string {
   return "34, 211, 238";
 }
 
-function glowRgb(color: string): string {
-  const [rs, gs, bs] = hexRgb(color).split(",").map((n) => Number(n.trim()));
+const GLOW_HEX: Record<string, string> = {
+  prime: "#FF9900",
+  amazon: "#FF9900",
+  amazonmusic: "#25D1DA",
+  dazn: "#F5E642",
+  uber: "#E8E8E8",
+  uberone: "#E8E8E8",
+  notion: "#E8E8E8",
+  revolut: "#66D9EF",
+  sky: "#E2001A",
+};
+
+function glowRgb(color: string, brandKey?: string): string {
+  const src = (brandKey && GLOW_HEX[brandKey]) || color;
+  const [rs, gs, bs] = hexRgb(src).split(",").map((n) => Number(n.trim()));
   const r = rs ?? 34;
   const g = gs ?? 211;
   const b = bs ?? 238;
   const l = (r + g + b) / 3;
-  if (l >= 55) return `${r}, ${g}, ${b}`;
-  const lift = 90;
+  if (l >= 70) return `${r}, ${g}, ${b}`;
+  const lift = 110;
   return `${Math.min(255, r + lift)}, ${Math.min(255, g + lift)}, ${Math.min(255, b + lift)}`;
 }
 
@@ -538,7 +551,11 @@ export function OrbitCanvas({
           b.radius,
           b.inc,
           b.node,
-          on ? `${selected?.color ?? b.color}` : faded ? "rgba(170,220,255,0.08)" : "rgba(170,220,255,0.28)",
+          on
+            ? `rgb(${glowRgb(selected?.color ?? b.color, selected?.brandKey ?? b.brandKey)})`
+            : faded
+              ? "rgba(170,220,255,0.08)"
+              : "rgba(170,220,255,0.28)",
           on ? 2 : faded ? 0.6 : 0.9,
         );
       }
@@ -577,13 +594,14 @@ export function OrbitCanvas({
       const drawSun = () => {
         const pulse = 0.94 + Math.sin(now * 0.0016) * 0.06;
 
+        const bloomScale = sim.focusId ? 3.1 : 6.2;
         const bloom = ctx.createRadialGradient(
           sunP.x,
           sunP.y,
           0,
           sunP.x,
           sunP.y,
-          sunR * 6.2 * pulse,
+          sunR * bloomScale * pulse,
         );
         bloom.addColorStop(0, "rgba(255,255,255,1)");
         bloom.addColorStop(0.08, "rgba(186,247,255,0.95)");
@@ -593,7 +611,7 @@ export function OrbitCanvas({
         bloom.addColorStop(1, "rgba(14,165,233,0)");
         ctx.fillStyle = bloom;
         ctx.beginPath();
-        ctx.arc(sunP.x, sunP.y, sunR * 6.2 * pulse, 0, Math.PI * 2);
+        ctx.arc(sunP.x, sunP.y, sunR * bloomScale * pulse, 0, Math.PI * 2);
         ctx.fill();
 
         const core = ctx.createRadialGradient(
@@ -655,46 +673,42 @@ export function OrbitCanvas({
         }
 
         if (!b.paused && b.kind !== "trash") {
-          const u = 0.28 + 0.72 * Math.max(0, Math.min(1, b.urgency));
-          const beat = 0.45 + 0.55 * Math.sin(now * (0.0024 + u * 0.01));
-          const rgb = glowRgb(b.color);
-          const rad = b.pr * (2.6 + u * 2 + beat * 0.5 + (sim.focusId === b.id ? 0.6 : 0));
-          const bloom = ctx.createRadialGradient(b.px, b.py, b.pr * 0.15, b.px, b.py, rad);
-          bloom.addColorStop(0, `rgba(${rgb}, ${0.55 + u * 0.4 * beat})`);
-          bloom.addColorStop(0.28, `rgba(${rgb}, ${0.5 + u * 0.35 * beat})`);
-          bloom.addColorStop(0.6, `rgba(${rgb}, ${0.22 + u * 0.25})`);
+          const u = 0.35 + 0.65 * Math.max(0, Math.min(1, b.urgency));
+          const beat = 0.45 + 0.55 * Math.sin(now * (0.0028 + u * 0.012));
+          const rgb = glowRgb(b.color, b.brandKey);
+          const rad = b.pr * (2.8 + u * 2.2 + beat * 0.55 + (focused ? 0.8 : 0));
+          const bloom = ctx.createRadialGradient(b.px, b.py, b.pr * 0.2, b.px, b.py, rad);
+          bloom.addColorStop(0, `rgba(${rgb}, ${0.15 + u * 0.2 * beat})`);
+          bloom.addColorStop(0.35, `rgba(${rgb}, ${0.45 + u * 0.4 * beat})`);
+          bloom.addColorStop(0.7, `rgba(${rgb}, ${0.2 + u * 0.22})`);
           bloom.addColorStop(1, `rgba(${rgb}, 0)`);
           ctx.fillStyle = bloom;
           ctx.beginPath();
           ctx.arc(b.px, b.py, rad, 0, Math.PI * 2);
           ctx.fill();
-          ctx.strokeStyle = `rgba(${rgb}, ${0.45 + u * 0.5 * beat})`;
-          ctx.lineWidth = Math.max(1.4, b.pr * 0.16);
-          ctx.beginPath();
-          ctx.arc(b.px, b.py, b.pr * (1.18 + beat * 0.12 * u), 0, Math.PI * 2);
-          ctx.stroke();
-        }
-        if (sim.focusId === b.id) {
-          const pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(now * 0.0065));
-          const rgb = glowRgb(b.color);
-          const glowR = b.pr * (3.4 + pulse * 1.8);
-          const glow = ctx.createRadialGradient(b.px, b.py, b.pr * 0.4, b.px, b.py, glowR);
-          glow.addColorStop(0, `rgba(${rgb},${0.45 * pulse})`);
-          glow.addColorStop(0.28, `rgba(${rgb},${0.6 * pulse})`);
-          glow.addColorStop(0.62, `rgba(${rgb},${0.22 * pulse})`);
-          glow.addColorStop(1, `rgba(${rgb},0)`);
-          ctx.fillStyle = glow;
-          ctx.beginPath();
-          ctx.arc(b.px, b.py, glowR, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = `rgba(${rgb},${0.5 + pulse * 0.45})`;
-          ctx.lineWidth = Math.max(2, b.pr * 0.22);
-          ctx.beginPath();
-          ctx.arc(b.px, b.py, b.pr * (1.35 + pulse * 0.28), 0, Math.PI * 2);
-          ctx.stroke();
         }
 
         drawBrand(ctx, b.brandKey, b.px, b.py, b.pr);
+
+        if (!b.paused && b.kind !== "trash") {
+          const u = 0.35 + 0.65 * Math.max(0, Math.min(1, b.urgency));
+          const beat = 0.45 + 0.55 * Math.sin(now * (0.0028 + u * 0.012));
+          const rgb = glowRgb(b.color, b.brandKey);
+          ctx.strokeStyle = `rgba(${rgb}, ${0.55 + u * 0.45 * beat})`;
+          ctx.lineWidth = Math.max(2, b.pr * (focused ? 0.28 : 0.18));
+          ctx.beginPath();
+          ctx.arc(b.px, b.py, b.pr * (1.08 + beat * 0.1 * u), 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (focused) {
+          const pulse = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(now * 0.007));
+          const rgb = glowRgb(b.color, b.brandKey);
+          ctx.strokeStyle = `rgba(${rgb},${0.75 + pulse * 0.25})`;
+          ctx.lineWidth = Math.max(2.4, b.pr * 0.32);
+          ctx.beginPath();
+          ctx.arc(b.px, b.py, b.pr * (1.22 + pulse * 0.18), 0, Math.PI * 2);
+          ctx.stroke();
+        }
         ctx.restore();
 
         if (sim.hoverId === b.id || sim.focusId === b.id) {
@@ -707,11 +721,14 @@ export function OrbitCanvas({
       };
 
       const sorted = [...sim.bodies].sort((a, b) => b.pz - a.pz);
-      const far = sorted.filter((b) => b.pz > 0);
-      const near = sorted.filter((b) => b.pz <= 0);
+      const fid = sim.focusId;
+      const far = sorted.filter((b) => b.pz > 0 && b.id !== fid);
+      const near = sorted.filter((b) => b.pz <= 0 && b.id !== fid);
+      const focusedBody = fid ? sim.bodies.find((b) => b.id === fid) : undefined;
       for (const b of far) drawBody(b);
       drawSun();
       for (const b of near) drawBody(b);
+      if (focusedBody) drawBody(focusedBody);
 
       raf = requestAnimationFrame(tick);
     };
