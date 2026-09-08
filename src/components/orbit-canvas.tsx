@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { activeMonthlyTotal, classify, daysUntilRenewal, monthlyEquivalent, orbitUrgency } from "@/lib/domain";
+import { activeMonthlyTotal, classify, monthlyEquivalent, orbitUrgency } from "@/lib/domain";
 import { formatEuroCompact } from "@/lib/format";
 import { drawBrand, getBrand, preloadBrandIcons } from "@/lib/logos";
 import type { StatusFilter, Subscription } from "@/lib/types";
@@ -28,7 +28,6 @@ interface Body {
   node: number;
   omega: number;
   urgency: number;
-  days: number;
   px: number;
   py: number;
   pz: number;
@@ -96,13 +95,7 @@ function worldOf(radius: number, angle: number, inc: number, node: number) {
 }
 
 function hexRgb(color: string): string {
-  const raw = color.trim();
-  const rgb = raw.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
-  if (rgb) return `${rgb[1]}, ${rgb[2]}, ${rgb[3]}`;
-  let m = raw.replace("#", "");
-  if (m.length === 3 && /^[0-9a-fA-F]+$/.test(m)) {
-    m = `${m[0]}${m[0]}${m[1]}${m[1]}${m[2]}${m[2]}`;
-  }
+  const m = color.replace("#", "").trim();
   if (m.length === 6 && /^[0-9a-fA-F]+$/.test(m)) {
     return `${parseInt(m.slice(0, 2), 16)}, ${parseInt(m.slice(2, 4), 16)}, ${parseInt(m.slice(4, 6), 16)}`;
   }
@@ -122,9 +115,9 @@ const BAND = {
 } as const;
 
 function sizeStep(share: number) {
-  if (share >= 0.18) return 26;
-  if (share >= 0.08) return 20;
-  return 16;
+  if (share >= 0.18) return 18;
+  if (share >= 0.08) return 14;
+  return 10;
 }
 
 function bandOf(s: Subscription, total: number) {
@@ -134,15 +127,10 @@ function bandOf(s: Subscription, total: number) {
   return "monthly" as const;
 }
 
-const RING_OMEGA = {
-  weekly: 0.048,
-  monthly: 0.026,
-  yearly: 0.015,
-  trash: 0.009,
-} as const;
+const RING_OMEGA = 0.026;
 
 function bodySize(s: Subscription, key: keyof typeof BAND, total: number) {
-  if (key === "trash") return 15;
+  if (key === "trash") return 11;
   const share = total > 0 ? monthlyEquivalent(s) / Math.max(total, 0.01) : 0.08;
   return sizeStep(share);
 }
@@ -194,9 +182,8 @@ function packBand(
         size: it.size,
         inc: base.inc,
         node: base.node,
-        omega: RING_OMEGA[key],
+        omega: RING_OMEGA,
         urgency: it.s.status === "cancelled" ? 0 : orbitUrgency(it.s),
-        days: it.s.status === "active" ? daysUntilRenewal(it.s) : 9999,
         px: 0,
         py: 0,
         pz: 0,
@@ -263,10 +250,6 @@ export function OrbitCanvas({
     targetZoom: 1,
     cyFactor: 0.42,
     targetCyFactor: 0.42,
-    panX: 0,
-    panY: 0,
-    targetPanX: 0,
-    targetPanY: 0,
     dragging: false,
     moved: false,
     lastX: 0,
@@ -307,8 +290,6 @@ export function OrbitCanvas({
       sim.targetZoom = 1;
       sim.targetTilt = 0.68;
       sim.targetCyFactor = 0.42;
-      sim.targetPanX = 0;
-      sim.targetPanY = 0;
       return;
     }
     const body = sim.bodies.find((b) => b.id === id);
@@ -318,9 +299,9 @@ export function OrbitCanvas({
     }
     sim.focusId = id;
     sim.followId = id;
-    sim.targetZoom = pinnedId ? 1.72 : 1.85;
-    sim.targetTilt = pinnedId ? 0.52 : 0.58;
-    sim.targetCyFactor = pinnedId ? 0.28 : 0.36;
+    sim.targetZoom = pinnedId ? 2.05 : 2.2;
+    sim.targetTilt = pinnedId ? 0.46 : 0.5;
+    sim.targetCyFactor = pinnedId ? 0.32 : 0.4;
   }, [focusId, pinnedId]);
 
   useEffect(() => {
@@ -363,13 +344,12 @@ export function OrbitCanvas({
     const ro = new ResizeObserver(resize);
     ro.observe(wrap);
 
-    const hitTest = (x: number, y: number, loose = false): Body | null => {
+    const hitTest = (x: number, y: number): Body | null => {
       let best: Body | null = null;
       let bestD = Infinity;
-      const pad = loose ? 28 : 16;
       for (const b of sim.bodies) {
         const d = Math.hypot(b.px - x, b.py - y);
-        if (d < Math.max(pad, b.pr + pad) && (b.pz < (best?.pz ?? 999) || d < bestD - 6)) {
+        if (d < Math.max(18, b.pr + 10) && (b.pz < (best?.pz ?? 999) || d < bestD - 6)) {
           best = b;
           bestD = d;
         }
@@ -379,41 +359,35 @@ export function OrbitCanvas({
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.pointerType === "touch" && e.isPrimary === false) return;
-      sim.dragging = false;
+      sim.dragging = true;
       sim.moved = false;
       sim.lastX = e.clientX;
       sim.lastY = e.clientY;
       sim.pointerId = e.pointerId;
-      try {
-        wrap.setPointerCapture(e.pointerId);
-      } catch {
-        /* iOS */
-      }
+      wrap.setPointerCapture(e.pointerId);
     };
     const onPointerMove = (e: PointerEvent) => {
       const rect = wrap.getBoundingClientRect();
-      const hovered = hitTest(e.clientX - rect.left, e.clientY - rect.top, true);
+      const hovered = hitTest(e.clientX - rect.left, e.clientY - rect.top);
       sim.hoverId = hovered?.id ?? null;
       wrap.style.cursor = hovered ? "pointer" : sim.dragging ? "grabbing" : "grab";
       if (!sim.dragging || e.pointerId !== sim.pointerId) return;
       const dx = e.clientX - sim.lastX;
       const dy = e.clientY - sim.lastY;
-      const slop = e.pointerType === "touch" ? 16 : 6;
-      if (Math.hypot(dx, dy) > slop) {
+      if (Math.hypot(dx, dy) > 4) {
         sim.moved = true;
-        sim.dragging = true;
         sim.followId = null;
-        sim.targetRot += dx * 0.006;
-        sim.targetTilt = Math.max(0.35, Math.min(1.05, sim.targetTilt + dy * 0.004));
-        sim.lastX = e.clientX;
-        sim.lastY = e.clientY;
       }
+      sim.targetRot += dx * 0.006;
+      sim.targetTilt = Math.max(0.35, Math.min(1.05, sim.targetTilt + dy * 0.004));
+      sim.lastX = e.clientX;
+      sim.lastY = e.clientY;
     };
     const onPointerUp = (e: PointerEvent) => {
       if (e.pointerId !== sim.pointerId) return;
       const rect = wrap.getBoundingClientRect();
       if (!sim.moved) {
-        const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top, true);
+        const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
         onSelectRef.current(hit ? hit.id : null);
       }
       sim.dragging = false;
@@ -452,8 +426,6 @@ export function OrbitCanvas({
       sim.followId = null;
       sim.targetZoom = 1;
       sim.targetRot = 0.55;
-      sim.targetPanX = 0;
-      sim.targetPanY = 0;
       sim.targetTilt = 0.68;
       sim.targetCyFactor = 0.42;
     };
@@ -480,9 +452,6 @@ export function OrbitCanvas({
           const wpos = worldOf(tracked.radius, tracked.angle, tracked.inc, tracked.node);
           sim.targetRot = Math.atan2(wpos.x, wpos.z) + Math.PI;
         }
-      } else if (!sim.followId) {
-        sim.targetPanX = 0;
-        sim.targetPanY = 0;
       }
 
       const ease = 1 - Math.exp(-dt * 5.2);
@@ -496,26 +465,10 @@ export function OrbitCanvas({
 
       const w = sim.w;
       const h = sim.h;
-      const fit = Math.min(w / 520, h / 620);
-      const zoomPre = sim.zoom * fit;
-      const cx0 = w * 0.5;
-      const cy0 = h * sim.cyFactor;
-      if (sim.followId && !sim.dragging) {
-        const tracked = sim.bodies.find((b) => b.id === sim.followId);
-        if (tracked) {
-          const wpos = worldOf(tracked.radius, tracked.angle, tracked.inc, tracked.node);
-          const p0 = project(wpos.x, wpos.y, wpos.z, sim.rot, sim.tilt, zoomPre, cx0, cy0);
-          const aimY = h * (sim.focusId ? 0.30 : 0.38);
-          sim.targetPanX = cx0 - p0.x;
-          sim.targetPanY = aimY - p0.y;
-        }
-      }
-      sim.panX += (sim.targetPanX - sim.panX) * ease;
-      sim.panY += (sim.targetPanY - sim.panY) * ease;
-
-      const cx = cx0 + sim.panX;
-      const cy = cy0 + sim.panY;
-      const zoom = zoomPre;
+      const cx = w * 0.5;
+      const cy = h * sim.cyFactor;
+      const fit = Math.min(w / 720, h / 720);
+      const zoom = sim.zoom * fit;
       const rot = sim.rot;
       const tilt = sim.tilt;
 
@@ -613,7 +566,7 @@ export function OrbitCanvas({
           0,
           sunP.x,
           sunP.y,
-          sunR * (sim.focusId ? 3.4 : 6.2) * pulse,
+          sunR * 6.2 * pulse,
         );
         bloom.addColorStop(0, "rgba(255,255,255,1)");
         bloom.addColorStop(0.08, "rgba(186,247,255,0.95)");
@@ -623,7 +576,7 @@ export function OrbitCanvas({
         bloom.addColorStop(1, "rgba(14,165,233,0)");
         ctx.fillStyle = bloom;
         ctx.beginPath();
-        ctx.arc(sunP.x, sunP.y, sunR * (sim.focusId ? 3.4 : 6.2) * pulse, 0, Math.PI * 2);
+        ctx.arc(sunP.x, sunP.y, sunR * 6.2 * pulse, 0, Math.PI * 2);
         ctx.fill();
 
         const core = ctx.createRadialGradient(
@@ -688,11 +641,11 @@ export function OrbitCanvas({
           const u = 0.28 + 0.72 * Math.max(0, Math.min(1, b.urgency));
           const beat = 0.45 + 0.55 * Math.sin(now * (0.0024 + u * 0.01));
           const rgb = hexRgb(b.color);
-          const rad = b.pr * (2.8 + u * 2.2 + beat * 0.55 + (sim.focusId === b.id ? 0.7 : 0));
-          const bloom = ctx.createRadialGradient(b.px, b.py, b.pr * 0.15, b.px, b.py, rad);
-          bloom.addColorStop(0, `rgba(255,255,255,${0.35 + u * 0.4 * beat})`);
-          bloom.addColorStop(0.2, `rgba(${rgb}, ${0.7 + u * 0.3 * beat})`);
-          bloom.addColorStop(0.5, `rgba(${rgb}, ${0.32 + u * 0.3})`);
+          const rad = b.pr * (2.1 + u * 1.6 + beat * 0.35 + (sim.focusId === b.id ? 0.45 : 0));
+          const bloom = ctx.createRadialGradient(b.px, b.py, b.pr * 0.2, b.px, b.py, rad);
+          bloom.addColorStop(0, `rgba(255,255,255,${0.28 + u * 0.35 * beat})`);
+          bloom.addColorStop(0.22, `rgba(${rgb}, ${0.55 + u * 0.4 * beat})`);
+          bloom.addColorStop(0.55, `rgba(${rgb}, ${0.22 + u * 0.28})`);
           bloom.addColorStop(1, `rgba(${rgb}, 0)`);
           ctx.fillStyle = bloom;
           ctx.beginPath();
@@ -707,11 +660,11 @@ export function OrbitCanvas({
         if (sim.focusId === b.id) {
           const pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(now * 0.0065));
           const rgb = hexRgb(b.color);
-          const glowR = b.pr * (3.2 + pulse * 1.5);
+          const glowR = b.pr * (3.4 + pulse * 1.8);
           const glow = ctx.createRadialGradient(b.px, b.py, b.pr * 0.4, b.px, b.py, glowR);
-          glow.addColorStop(0, `rgba(255,255,255,${0.28 * pulse})`);
+          glow.addColorStop(0, `rgba(255,255,255,${0.35 * pulse})`);
           glow.addColorStop(0.28, `rgba(${rgb},${0.55 * pulse})`);
-          glow.addColorStop(0.62, `rgba(${rgb},${0.2 * pulse})`);
+          glow.addColorStop(0.62, `rgba(${rgb},${0.18 * pulse})`);
           glow.addColorStop(1, `rgba(${rgb},0)`);
           ctx.fillStyle = glow;
           ctx.beginPath();
@@ -733,25 +686,15 @@ export function OrbitCanvas({
           ctx.textBaseline = "top";
           ctx.fillStyle = "rgba(238,242,255,0.92)";
           ctx.fillText(b.name, b.px, b.py + b.pr + 5);
-        } else if (!b.paused && b.kind !== "trash" && b.days <= 14) {
-          ctx.font = `700 ${Math.max(9, Math.min(11, b.pr * 0.55))}px Outfit, sans-serif`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "top";
-          ctx.fillStyle = b.days <= 3 ? `rgba(${hexRgb(b.color)},0.95)` : "rgba(238,242,255,0.75)";
-          ctx.fillText(b.days === 0 ? "oggi" : `${b.days}g`, b.px, b.py + b.pr + 4);
         }
       };
 
       const sorted = [...sim.bodies].sort((a, b) => b.pz - a.pz);
-      const focusedBody = sim.focusId
-        ? sim.bodies.find((b) => b.id === sim.focusId)
-        : null;
-      const far = sorted.filter((b) => b.pz > 0 && b.id !== sim.focusId);
-      const near = sorted.filter((b) => b.pz <= 0 && b.id !== sim.focusId);
+      const far = sorted.filter((b) => b.pz > 0);
+      const near = sorted.filter((b) => b.pz <= 0);
       for (const b of far) drawBody(b);
       drawSun();
       for (const b of near) drawBody(b);
-      if (focusedBody) drawBody(focusedBody);
 
       raf = requestAnimationFrame(tick);
     };
@@ -773,7 +716,7 @@ export function OrbitCanvas({
   }, []);
 
   return (
-    <div ref={wrapRef} className="absolute inset-0 cursor-grab touch-none" style={{ touchAction: "none" }}>
+    <div ref={wrapRef} className="absolute inset-0 cursor-grab touch-none">
       <canvas ref={canvasRef} className="h-full w-full" />
     </div>
   );
