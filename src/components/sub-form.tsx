@@ -7,7 +7,6 @@ import {
   FREQUENCIES,
   nextFromStart,
   nextOccurrence,
-  startedOf,
 } from "@/lib/domain";
 import { BrandBadge, getBrand, matchBrands } from "@/lib/logos";
 import { CloseButton } from "./close-button";
@@ -35,7 +34,7 @@ export function SubForm({
   const [category, setCategory] = useState<CategoryId>(initial.category);
   const [price, setPrice] = useState(String(initial.price));
   const [frequency, setFrequency] = useState<Frequency>(initial.frequency);
-  const [startedAt, setStartedAt] = useState(startedOf(initial) || initial.nextRenewal);
+  const [startedAt, setStartedAt] = useState(initial.startedAt || initial.nextRenewal);
   const [brandKey, setBrandKey] = useState(initial.brandKey);
   const [notes, setNotes] = useState(initial.notes);
   const [more, setMore] = useState(true);
