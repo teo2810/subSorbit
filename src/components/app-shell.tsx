@@ -22,6 +22,19 @@ import type { StatusFilter, Subscription, TabId } from "@/lib/types";
 
 const TAB_ORDER: TabId[] = ["home", "orbit", "calendar", "data"];
 
+function dueShort(s: Subscription) {
+  if (s.frequency === "once") {
+    const d = daysUntilRenewal(s);
+    if (d >= 9000) return "una tantum";
+    if (d <= 0) return "una tantum · oggi";
+    return `una tantum · ${d}g`;
+  }
+  const d = daysUntilRenewal(s);
+  if (d >= 9000) return "—";
+  if (d <= 0) return "scade oggi";
+  return `tra ${d}g`;
+}
+
 const TOAST_OPTIONS = {
   style: {
     background: "#12182e",
@@ -237,9 +250,7 @@ export function AppShell() {
                       <p className="text-[11px] text-muted">
                         {formatEuroCompact(focused.price)}
                         {" · "}
-                        {daysUntilRenewal(focused) <= 0
-                          ? "scade oggi"
-                          : `tra ${daysUntilRenewal(focused)}g`}
+                        {dueShort(focused)}
                       </p>
                     </div>
                     <button
@@ -449,7 +460,7 @@ function OrbitIconStrip({
           const u = live ? orbitUrgency(s) : 0;
           const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
           const dur = [3.8, 2.4, 1.5][step]!;
-          const spread = [8, 14, 20][step]!;
+          const spread = [5, 13, 26][step]!;
           const tint = getBrand(s.brandKey).color || "#22d3ee";
           return (
             <button
@@ -473,7 +484,7 @@ function OrbitIconStrip({
               }
             >
               <BrandBadge brandKey={s.brandKey} name={s.name} size={32} />
-              {days !== null && days <= 7 && days < 9000 ? (
+              {days !== null && days <= 7 && days < 9000 && s.frequency !== "once" ? (
                 <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full bg-cyan px-1 font-display text-[8px] font-semibold leading-3 text-void">
                   {days === 0 ? "oggi" : `${days}g`}
                 </span>
