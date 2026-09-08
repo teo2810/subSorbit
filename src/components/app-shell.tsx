@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { CircleHelp, Pencil } from "lucide-react";
 import { Toaster } from "sonner";
 import { BottomNav } from "./bottom-nav";
@@ -463,12 +463,12 @@ function OrbitIconStrip({
               )}
               style={
                 live
-                  ? {
+                  ? ({
                       animation: `strip-brand-pulse ${dur}s ease-in-out infinite`,
                       ["--strip-glow"]: tint,
                       ["--strip-spread"]: `${spread}px`,
                       boxShadow: on ? `0 0 0 2px ${tint}` : undefined,
-                    }
+                    } as CSSProperties)
                   : undefined
               }
             >
