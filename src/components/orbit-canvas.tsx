@@ -689,27 +689,31 @@ export function OrbitCanvas({
           }
         }
 
+        drawBrand(ctx, b.brandKey, b.px, b.py, b.pr);
+
         if (!b.paused && b.kind !== "trash") {
           const u = Math.max(0, Math.min(1, b.urgency));
           const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
-          const period = [3.6, 2.2, 1.35][step]!;
-          const amp = [0.18, 0.3, 0.46][step]!;
+          const period = [3.8, 2.4, 1.5][step]!;
+          const amp = [0.22, 0.38, 0.58][step]!;
           const beat = 0.5 + 0.5 * Math.sin((now / 1000) * ((Math.PI * 2) / period));
           const rgb = glowRgb(b.color, b.brandKey);
-          ctx.save();
-          ctx.shadowColor = `rgb(${rgb})`;
-          ctx.shadowBlur = Math.max(10, b.pr * (2.4 + amp * beat * 2.8 + (focused ? 1.2 : 0)));
-          ctx.fillStyle = `rgba(${rgb}, ${0.55 + amp * beat * 0.35})`;
+          const inner = Math.max(1, b.pr * 0.96);
+          const outer = b.pr * (1.55 + amp * beat + (focused ? 0.35 : 0));
+          const a = (focused ? 0.72 : 0.5) + amp * beat * 0.4;
+          const halo = ctx.createRadialGradient(b.px, b.py, inner, b.px, b.py, outer);
+          halo.addColorStop(0, `rgba(${rgb}, 0)`);
+          halo.addColorStop(0.18, `rgba(${rgb}, ${a * 0.15})`);
+          halo.addColorStop(0.55, `rgba(${rgb}, ${a})`);
+          halo.addColorStop(1, `rgba(${rgb}, 0)`);
+          ctx.fillStyle = halo;
           ctx.beginPath();
-          ctx.arc(b.px, b.py, Math.max(2, b.pr * 0.92), 0, Math.PI * 2);
+          ctx.arc(b.px, b.py, outer, 0, Math.PI * 2);
           ctx.fill();
-          ctx.restore();
         }
-
-        drawBrand(ctx, b.brandKey, b.px, b.py, b.pr);
         ctx.restore();
 
-        if (sim.hoverId === b.id || sim.focusId === b.id) {
+        if (!focused && (sim.hoverId === b.id || sim.focusId === b.id)) {
           ctx.font = `600 ${Math.max(10, Math.min(13, b.pr * 0.7))}px Outfit, sans-serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "top";
@@ -730,18 +734,20 @@ export function OrbitCanvas({
         drawBody(focusedBody);
         const rgb = glowRgb(focusedBody.color, focusedBody.brandKey);
         const ax = focusedBody.px;
-        const ay = focusedBody.py + focusedBody.pr + 6;
+        const ay = focusedBody.py + focusedBody.pr + 4;
         const bx = w * 0.5;
-        const by = h - 96;
-        ctx.save();
-        ctx.strokeStyle = `rgba(${rgb},0.7)`;
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.moveTo(ax, ay);
-        ctx.lineTo(ax, ay + Math.max(12, (by - ay) * 0.22));
-        ctx.lineTo(bx, by);
-        ctx.stroke();
-        ctx.restore();
+        const by = h - 152;
+        if (by > ay + 10) {
+          ctx.save();
+          ctx.strokeStyle = `rgba(${rgb},0.55)`;
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(ax, ay);
+          ctx.lineTo(ax, ay + 16);
+          ctx.lineTo(bx, by);
+          ctx.stroke();
+          ctx.restore();
+        }
       }
 
       raf = requestAnimationFrame(tick);

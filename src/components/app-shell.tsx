@@ -206,32 +206,30 @@ export function AppShell() {
                 </div>
               </div>
             </header>
-            {focused ? (
-              <div className="pointer-events-none absolute inset-x-0 bottom-[7.6rem] z-30 flex justify-center px-4">
-                <div className="pointer-events-auto flex max-w-[92%] items-center gap-2.5 rounded-2xl bg-[#12182ecc] px-3 py-2 shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-md">
-                  <BrandBadge brandKey={focused.brandKey} name={focused.name} size={28} />
-                  <div className="min-w-0">
-                    <p className="truncate font-display text-sm font-medium">{focused.name}</p>
-                    <p className="text-[11px] text-muted">
-                      {formatEuroCompact(focused.price)}
-                      {" · "}
-                      {daysUntilRenewal(focused) <= 0
-                        ? "scade oggi"
-                        : `tra ${daysUntilRenewal(focused)}g`}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Modifica"
-                    onClick={() => setEditId(focused.id)}
-                    className="glow-tap ml-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-cyan text-void"
-                  >
-                    <Pencil className="size-3.5" strokeWidth={2.4} />
-                  </button>
-                </div>
-              </div>
-            ) : null}
             <div className="pointer-events-none absolute inset-x-0 bottom-28 z-20 flex flex-col items-center px-4">
+                {focused ? (
+                  <div className="pointer-events-auto mb-2 flex max-w-[92%] items-center gap-2.5 rounded-2xl bg-[#12182ecc] px-3 py-2 shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-md">
+                    <BrandBadge brandKey={focused.brandKey} name={focused.name} size={28} />
+                    <div className="min-w-0">
+                      <p className="truncate font-display text-sm font-medium">{focused.name}</p>
+                      <p className="text-[11px] text-muted">
+                        {formatEuroCompact(focused.price)}
+                        {" · "}
+                        {daysUntilRenewal(focused) <= 0
+                          ? "scade oggi"
+                          : `tra ${daysUntilRenewal(focused)}g`}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label="Modifica"
+                      onClick={() => setEditId(focused.id)}
+                      className="glow-tap ml-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-cyan text-void"
+                    >
+                      <Pencil className="size-3.5" strokeWidth={2.4} />
+                    </button>
+                  </div>
+                ) : null}
                 <div className="pointer-events-auto mb-2 w-full max-w-[720px]">
                   <OrbitIconStrip
                     subscriptions={subscriptions}
