@@ -113,33 +113,36 @@ function hexRgb(color: string): string {
 const GLOW_HEX: Record<string, string> = {
   prime: "#FF9900",
   amazon: "#FF9900",
+  amazonprime: "#FF9900",
   amazonmusic: "#25D1DA",
+  spotify: "#1ED760",
+  netflix: "#E50914",
+  disney: "#113CCF",
+  disneyplus: "#113CCF",
+  google: "#4285F4",
+  googleone: "#4285F4",
+  youtube: "#FF0000",
+  youtubepremium: "#FF0000",
+  paramount: "#0064FF",
+  paramountplus: "#0064FF",
+  now: "#00A3E0",
+  nowtv: "#00A3E0",
   dazn: "#F5E642",
-  uber: "#E8E8E8",
-  uberone: "#E8E8E8",
-  notion: "#E8E8E8",
-  revolut: "#66D9EF",
   sky: "#E2001A",
+  apple: "#A2AAAD",
+  icloud: "#3D95CE",
+  tim: "#002E6D",
+  timvision: "#E30613",
+  uber: "#FFFFFF",
+  uberone: "#FFFFFF",
+  notion: "#FFFFFF",
+  revolut: "#66D9EF",
 };
 
 function glowRgb(color: string, brandKey?: string): string {
-  const src = (brandKey && GLOW_HEX[brandKey]) || color;
-  const [rs, gs, bs] = hexRgb(src).split(",").map((n) => Number(n.trim()));
-  let r = rs ?? 34;
-  let g = gs ?? 211;
-  let b = bs ?? 238;
-  const max = Math.max(r, g, b, 1);
-  if (max < 48) {
-    r = 230;
-    g = 230;
-    b = 235;
-  } else if (max < 200) {
-    const k = 210 / max;
-    r = Math.min(255, Math.round(r * k));
-    g = Math.min(255, Math.round(g * k));
-    b = Math.min(255, Math.round(b * k));
-  }
-  return `${r}, ${g}, ${b}`;
+  const key = (brandKey || "").toLowerCase().replace(/[\s+_]/g, "");
+  const src = GLOW_HEX[key] || color;
+  return hexRgb(src);
 }
 
 function hash(n: number) {
@@ -689,28 +692,31 @@ export function OrbitCanvas({
           }
         }
 
-        drawBrand(ctx, b.brandKey, b.px, b.py, b.pr);
-
         if (!b.paused && b.kind !== "trash") {
           const u = Math.max(0, Math.min(1, b.urgency));
           const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
           const period = [3.8, 2.4, 1.5][step]!;
-          const amp = [0.22, 0.38, 0.58][step]!;
+          const amp = [0.2, 0.34, 0.52][step]!;
           const beat = 0.5 + 0.5 * Math.sin((now / 1000) * ((Math.PI * 2) / period));
           const rgb = glowRgb(b.color, b.brandKey);
-          const inner = Math.max(1, b.pr * 0.96);
-          const outer = b.pr * (1.55 + amp * beat + (focused ? 0.35 : 0));
-          const a = (focused ? 0.72 : 0.5) + amp * beat * 0.4;
+          const inner = Math.max(1, b.pr * 0.9);
+          const outer = b.pr * (1.7 + amp * beat * 1.15 + (focused ? 0.28 : 0));
+          const a = (focused ? 0.9 : 0.62) + amp * beat * 0.35;
+          ctx.save();
+          ctx.globalCompositeOperation = "lighter";
           const halo = ctx.createRadialGradient(b.px, b.py, inner, b.px, b.py, outer);
           halo.addColorStop(0, `rgba(${rgb}, 0)`);
-          halo.addColorStop(0.18, `rgba(${rgb}, ${a * 0.15})`);
-          halo.addColorStop(0.55, `rgba(${rgb}, ${a})`);
+          halo.addColorStop(0.45, `rgba(${rgb}, ${a * 0.35})`);
+          halo.addColorStop(0.72, `rgba(${rgb}, ${a})`);
           halo.addColorStop(1, `rgba(${rgb}, 0)`);
           ctx.fillStyle = halo;
           ctx.beginPath();
           ctx.arc(b.px, b.py, outer, 0, Math.PI * 2);
           ctx.fill();
+          ctx.restore();
         }
+
+        drawBrand(ctx, b.brandKey, b.px, b.py, b.pr);
         ctx.restore();
 
         if (!focused && (sim.hoverId === b.id || sim.focusId === b.id)) {
@@ -734,20 +740,15 @@ export function OrbitCanvas({
         drawBody(focusedBody);
         const rgb = glowRgb(focusedBody.color, focusedBody.brandKey);
         const ax = focusedBody.px;
-        const ay = focusedBody.py + focusedBody.pr + 4;
-        const bx = w * 0.5;
-        const by = h - 152;
-        if (by > ay + 10) {
-          ctx.save();
-          ctx.strokeStyle = `rgba(${rgb},0.55)`;
-          ctx.lineWidth = 1.2;
-          ctx.beginPath();
-          ctx.moveTo(ax, ay);
-          ctx.lineTo(ax, ay + 16);
-          ctx.lineTo(bx, by);
-          ctx.stroke();
-          ctx.restore();
-        }
+        const ay = focusedBody.py + focusedBody.pr + 3;
+        ctx.save();
+        ctx.strokeStyle = `rgba(${rgb},0.75)`;
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax, ay + 22);
+        ctx.stroke();
+        ctx.restore();
       }
 
       raf = requestAnimationFrame(tick);
