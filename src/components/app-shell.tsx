@@ -185,6 +185,7 @@ export function AppShell() {
                     setFocusId(null);
                     return;
                   }
+                  setFocusId(id);
                   setDetailId(id);
                 }}
                 onFocusDone={() => setFocusId(null)}

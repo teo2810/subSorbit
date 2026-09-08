@@ -352,12 +352,13 @@ export function OrbitCanvas({
     const ro = new ResizeObserver(resize);
     ro.observe(wrap);
 
-    const hitTest = (x: number, y: number): Body | null => {
+    const hitTest = (x: number, y: number, loose = false): Body | null => {
       let best: Body | null = null;
       let bestD = Infinity;
+      const pad = loose ? 28 : 16;
       for (const b of sim.bodies) {
         const d = Math.hypot(b.px - x, b.py - y);
-        if (d < Math.max(18, b.pr + 10) && (b.pz < (best?.pz ?? 999) || d < bestD - 6)) {
+        if (d < Math.max(pad, b.pr + pad) && (b.pz < (best?.pz ?? 999) || d < bestD - 6)) {
           best = b;
           bestD = d;
         }
@@ -372,30 +373,35 @@ export function OrbitCanvas({
       sim.lastX = e.clientX;
       sim.lastY = e.clientY;
       sim.pointerId = e.pointerId;
-      wrap.setPointerCapture(e.pointerId);
+      try {
+        wrap.setPointerCapture(e.pointerId);
+      } catch {
+        /* iOS */
+      }
     };
     const onPointerMove = (e: PointerEvent) => {
       const rect = wrap.getBoundingClientRect();
-      const hovered = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+      const hovered = hitTest(e.clientX - rect.left, e.clientY - rect.top, true);
       sim.hoverId = hovered?.id ?? null;
       wrap.style.cursor = hovered ? "pointer" : sim.dragging ? "grabbing" : "grab";
       if (!sim.dragging || e.pointerId !== sim.pointerId) return;
       const dx = e.clientX - sim.lastX;
       const dy = e.clientY - sim.lastY;
-      if (Math.hypot(dx, dy) > 4) {
+      const slop = e.pointerType === "touch" ? 16 : 6;
+      if (Math.hypot(dx, dy) > slop) {
         sim.moved = true;
         sim.followId = null;
+        sim.targetRot += dx * 0.006;
+        sim.targetTilt = Math.max(0.35, Math.min(1.05, sim.targetTilt + dy * 0.004));
+        sim.lastX = e.clientX;
+        sim.lastY = e.clientY;
       }
-      sim.targetRot += dx * 0.006;
-      sim.targetTilt = Math.max(0.35, Math.min(1.05, sim.targetTilt + dy * 0.004));
-      sim.lastX = e.clientX;
-      sim.lastY = e.clientY;
     };
     const onPointerUp = (e: PointerEvent) => {
       if (e.pointerId !== sim.pointerId) return;
       const rect = wrap.getBoundingClientRect();
       if (!sim.moved) {
-        const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
+        const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top, true);
         onSelectRef.current(hit ? hit.id : null);
       }
       sim.dragging = false;
@@ -659,7 +665,7 @@ export function OrbitCanvas({
           const u = 0.28 + 0.72 * Math.max(0, Math.min(1, b.urgency));
           const beat = 0.45 + 0.55 * Math.sin(now * (0.0024 + u * 0.01));
           const rgb = hexRgb(b.color);
-          const rad = b.pr * (2.1 + u * 1.6 + beat * 0.35 + (sim.focusId === b.id ? 0.45 : 0));
+          const rad = b.pr * (2.4 + u * 1.8 + beat * 0.45 + (sim.focusId === b.id ? 0.55 : 0));
           const bloom = ctx.createRadialGradient(b.px, b.py, b.pr * 0.2, b.px, b.py, rad);
           bloom.addColorStop(0, `rgba(255,255,255,${0.28 + u * 0.35 * beat})`);
           bloom.addColorStop(0.22, `rgba(${rgb}, ${0.55 + u * 0.4 * beat})`);
@@ -744,7 +750,7 @@ export function OrbitCanvas({
   }, []);
 
   return (
-    <div ref={wrapRef} className="absolute inset-0 cursor-grab touch-none">
+    <div ref={wrapRef} className="absolute inset-0 cursor-grab touch-none" style={{ touchAction: "none" }}>
       <canvas ref={canvasRef} className="h-full w-full" />
     </div>
   );
