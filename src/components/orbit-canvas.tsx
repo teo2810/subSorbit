@@ -128,7 +128,12 @@ function bandOf(s: Subscription, total: number) {
   return "monthly" as const;
 }
 
-const RING_OMEGA = 0.026;
+const RING_OMEGA = {
+  weekly: 0.048,
+  monthly: 0.026,
+  yearly: 0.015,
+  trash: 0.009,
+} as const;
 
 function bodySize(s: Subscription, key: keyof typeof BAND, total: number) {
   if (key === "trash") return 11;
@@ -183,7 +188,7 @@ function packBand(
         size: it.size,
         inc: base.inc,
         node: base.node,
-        omega: RING_OMEGA,
+        omega: RING_OMEGA[key],
         urgency: it.s.status === "cancelled" ? 0 : orbitUrgency(it.s),
         days: it.s.status === "active" ? daysUntilRenewal(it.s) : 9999,
         px: 0,
@@ -368,7 +373,7 @@ export function OrbitCanvas({
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.pointerType === "touch" && e.isPrimary === false) return;
-      sim.dragging = true;
+      sim.dragging = false;
       sim.moved = false;
       sim.lastX = e.clientX;
       sim.lastY = e.clientY;
@@ -390,6 +395,7 @@ export function OrbitCanvas({
       const slop = e.pointerType === "touch" ? 16 : 6;
       if (Math.hypot(dx, dy) > slop) {
         sim.moved = true;
+        sim.dragging = true;
         sim.followId = null;
         sim.targetRot += dx * 0.006;
         sim.targetTilt = Math.max(0.35, Math.min(1.05, sim.targetTilt + dy * 0.004));
@@ -467,11 +473,8 @@ export function OrbitCanvas({
         if (tracked) {
           const wpos = worldOf(tracked.radius, tracked.angle, tracked.inc, tracked.node);
           sim.targetRot = Math.atan2(wpos.x, wpos.z) + Math.PI;
-          const aimY = sim.h * (sim.focusId && sim.targetZoom > 1.4 ? 0.38 : 0.42);
-          sim.targetPanX = sim.w * 0.5 - tracked.px;
-          sim.targetPanY = aimY - tracked.py;
         }
-      } else {
+      } else if (!sim.followId) {
         sim.targetPanX = 0;
         sim.targetPanY = 0;
       }
@@ -484,15 +487,29 @@ export function OrbitCanvas({
       sim.tilt += (sim.targetTilt - sim.tilt) * ease;
       sim.zoom += (sim.targetZoom - sim.zoom) * ease;
       sim.cyFactor += (sim.targetCyFactor - sim.cyFactor) * ease;
-      sim.panX += (sim.targetPanX - sim.panX) * ease;
-      sim.panY += (sim.targetPanY - sim.panY) * ease;
 
       const w = sim.w;
       const h = sim.h;
-      const cx = w * 0.5 + sim.panX;
-      const cy = h * sim.cyFactor + sim.panY;
       const fit = Math.min(w / 720, h / 720);
-      const zoom = sim.zoom * fit;
+      const zoomPre = sim.zoom * fit;
+      const cx0 = w * 0.5;
+      const cy0 = h * sim.cyFactor;
+      if (sim.followId && !sim.dragging) {
+        const tracked = sim.bodies.find((b) => b.id === sim.followId);
+        if (tracked) {
+          const wpos = worldOf(tracked.radius, tracked.angle, tracked.inc, tracked.node);
+          const p0 = project(wpos.x, wpos.y, wpos.z, sim.rot, sim.tilt, zoomPre, cx0, cy0);
+          const aimY = h * (sim.focusId ? 0.36 : 0.42);
+          sim.targetPanX = cx0 - p0.x;
+          sim.targetPanY = aimY - p0.y;
+        }
+      }
+      sim.panX += (sim.targetPanX - sim.panX) * ease;
+      sim.panY += (sim.targetPanY - sim.panY) * ease;
+
+      const cx = cx0 + sim.panX;
+      const cy = cy0 + sim.panY;
+      const zoom = zoomPre;
       const rot = sim.rot;
       const tilt = sim.tilt;
 

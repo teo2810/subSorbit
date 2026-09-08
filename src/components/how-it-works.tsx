@@ -36,7 +36,7 @@ const RULES = [
   {
     icon: Sparkles,
     title: "Selezione",
-    text: "Tocca un pianeta o l’icona nella barra: zoom ravvicinato, bagliore ciano ampio e pulse sull’icona piccola. Il resto si spegne.",
+    text: "Tocca un pianeta o l’icona nella barra: zoom, la camera lo segue, bagliore del colore del brand. Gli altri si smorzano e si apre la scheda.",
   },
   {
     icon: Trash2,
