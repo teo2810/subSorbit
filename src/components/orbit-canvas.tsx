@@ -95,11 +95,28 @@ function worldOf(radius: number, angle: number, inc: number, node: number) {
 }
 
 function hexRgb(color: string): string {
-  const m = color.replace("#", "").trim();
+  const raw = color.trim();
+  const rgb = raw.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgb) return `${rgb[1]}, ${rgb[2]}, ${rgb[3]}`;
+  let m = raw.replace("#", "");
+  if (m.length === 3 && /^[0-9a-fA-F]+$/.test(m)) {
+    m = `${m[0]}${m[0]}${m[1]}${m[1]}${m[2]}${m[2]}`;
+  }
   if (m.length === 6 && /^[0-9a-fA-F]+$/.test(m)) {
     return `${parseInt(m.slice(0, 2), 16)}, ${parseInt(m.slice(2, 4), 16)}, ${parseInt(m.slice(4, 6), 16)}`;
   }
   return "34, 211, 238";
+}
+
+function glowRgb(color: string): string {
+  const [rs, gs, bs] = hexRgb(color).split(",").map((n) => Number(n.trim()));
+  const r = rs ?? 34;
+  const g = gs ?? 211;
+  const b = bs ?? 238;
+  const l = (r + g + b) / 3;
+  if (l >= 55) return `${r}, ${g}, ${b}`;
+  const lift = 90;
+  return `${Math.min(255, r + lift)}, ${Math.min(255, g + lift)}, ${Math.min(255, b + lift)}`;
 }
 
 function hash(n: number) {
@@ -640,18 +657,18 @@ export function OrbitCanvas({
         if (!b.paused && b.kind !== "trash") {
           const u = 0.28 + 0.72 * Math.max(0, Math.min(1, b.urgency));
           const beat = 0.45 + 0.55 * Math.sin(now * (0.0024 + u * 0.01));
-          const rgb = hexRgb(b.color);
-          const rad = b.pr * (2.1 + u * 1.6 + beat * 0.35 + (sim.focusId === b.id ? 0.45 : 0));
-          const bloom = ctx.createRadialGradient(b.px, b.py, b.pr * 0.2, b.px, b.py, rad);
-          bloom.addColorStop(0, `rgba(255,255,255,${0.28 + u * 0.35 * beat})`);
-          bloom.addColorStop(0.22, `rgba(${rgb}, ${0.55 + u * 0.4 * beat})`);
-          bloom.addColorStop(0.55, `rgba(${rgb}, ${0.22 + u * 0.28})`);
+          const rgb = glowRgb(b.color);
+          const rad = b.pr * (2.6 + u * 2 + beat * 0.5 + (sim.focusId === b.id ? 0.6 : 0));
+          const bloom = ctx.createRadialGradient(b.px, b.py, b.pr * 0.15, b.px, b.py, rad);
+          bloom.addColorStop(0, `rgba(${rgb}, ${0.55 + u * 0.4 * beat})`);
+          bloom.addColorStop(0.28, `rgba(${rgb}, ${0.5 + u * 0.35 * beat})`);
+          bloom.addColorStop(0.6, `rgba(${rgb}, ${0.22 + u * 0.25})`);
           bloom.addColorStop(1, `rgba(${rgb}, 0)`);
           ctx.fillStyle = bloom;
           ctx.beginPath();
           ctx.arc(b.px, b.py, rad, 0, Math.PI * 2);
           ctx.fill();
-          ctx.strokeStyle = `rgba(${rgb}, ${0.35 + u * 0.55 * beat})`;
+          ctx.strokeStyle = `rgba(${rgb}, ${0.45 + u * 0.5 * beat})`;
           ctx.lineWidth = Math.max(1.4, b.pr * 0.16);
           ctx.beginPath();
           ctx.arc(b.px, b.py, b.pr * (1.18 + beat * 0.12 * u), 0, Math.PI * 2);
@@ -659,12 +676,12 @@ export function OrbitCanvas({
         }
         if (sim.focusId === b.id) {
           const pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(now * 0.0065));
-          const rgb = hexRgb(b.color);
+          const rgb = glowRgb(b.color);
           const glowR = b.pr * (3.4 + pulse * 1.8);
           const glow = ctx.createRadialGradient(b.px, b.py, b.pr * 0.4, b.px, b.py, glowR);
-          glow.addColorStop(0, `rgba(255,255,255,${0.35 * pulse})`);
-          glow.addColorStop(0.28, `rgba(${rgb},${0.55 * pulse})`);
-          glow.addColorStop(0.62, `rgba(${rgb},${0.18 * pulse})`);
+          glow.addColorStop(0, `rgba(${rgb},${0.45 * pulse})`);
+          glow.addColorStop(0.28, `rgba(${rgb},${0.6 * pulse})`);
+          glow.addColorStop(0.62, `rgba(${rgb},${0.22 * pulse})`);
           glow.addColorStop(1, `rgba(${rgb},0)`);
           ctx.fillStyle = glow;
           ctx.beginPath();
