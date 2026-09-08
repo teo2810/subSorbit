@@ -21,12 +21,12 @@ const RULES = [
   {
     icon: Orbit,
     title: "Più vicino, più frequente",
-    text: "La distanza dal sole segue la frequenza di rinnovo: settimanale vicino, mensile in mezzo, annuale e una tantum più lontani.",
+    text: "Distanza e velocità insieme: settimanale gira più veloce e sta vicino al sole, mensile in mezzo, annuale e una tantum più lenti e più lontani.",
   },
   {
     icon: Sparkles,
     title: "Più brilla, più è vicino alla scadenza",
-    text: "Chi scade prima brilla di più. Sotto il pianeta, entro 14 giorni, compare “oggi” o “3g”. In barra le icone sono in ordine di scadenza.",
+    text: "Tre intensità, colore del logo. Lontano: pulse lento e stretto. A metà ciclo: medio. Ultimi giorni: più ampio e più frequente. Sotto il pianeta, entro 14 giorni, compare “oggi” o “3g”.",
   },
   {
     icon: Compass,
@@ -110,6 +110,46 @@ export function HowItWorks({
             Il sole è il totale mensile. Intorno, ogni abbonamento è un pianeta:
             grandezza, distanza e velocità raccontano costo, frequenza e scadenza.
           </p>
+          <section>
+            <h3 className="mb-2 font-display text-sm font-medium text-fg">
+              Pulse: quanto manca
+            </h3>
+            <div className="grid grid-cols-3 gap-2">
+              {(
+                [
+                  { label: "Lontano", hint: "Oltre metà ciclo", dur: "3.6s", spread: "10px", color: "#1DB954" },
+                  { label: "Metà", hint: "A metà ciclo", dur: "2.2s", spread: "16px", color: "#FF9900" },
+                  { label: "Scade", hint: "Ultimi giorni", dur: "1.35s", spread: "24px", color: "#E50914" },
+                ] as const
+              ).map((s) => (
+                <div
+                  key={s.label}
+                  className="flex flex-col items-center gap-2 rounded-2xl bg-white/4 px-2 py-3 shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
+                >
+                  <span
+                    className="relative flex size-11 items-center justify-center rounded-full"
+                    style={{
+                      background: s.color,
+                      boxShadow: `0 0 ${s.spread} ${s.color}`,
+                      animation: `orbit-help-pulse ${s.dur} ease-in-out infinite`,
+                      ["--pulse-color" as string]: s.color,
+                      ["--pulse-spread" as string]: s.spread,
+                    }}
+                  />
+                  <span className="text-center">
+                    <span className="block font-display text-[11px] font-medium">{s.label}</span>
+                    <span className="block text-[10px] leading-snug text-muted">{s.hint}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+            <style>{`
+              @keyframes orbit-help-pulse {
+                0%, 100% { transform: scale(0.92); box-shadow: 0 0 8px var(--pulse-color); opacity: 0.72; }
+                50% { transform: scale(1.08); box-shadow: 0 0 var(--pulse-spread) var(--pulse-color); opacity: 1; }
+              }
+            `}</style>
+          </section>
           <section>
             <h3 className="mb-2 font-display text-sm font-medium text-fg">
               Regole orbitali

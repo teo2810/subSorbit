@@ -157,7 +157,12 @@ function bandOf(s: Subscription, total: number) {
   return "monthly" as const;
 }
 
-const RING_OMEGA = 0.026;
+const RING_OMEGA = {
+  weekly: 0.22,
+  monthly: 0.13,
+  yearly: 0.08,
+  trash: 0.055,
+} as const;
 
 function bodySize(s: Subscription, key: keyof typeof BAND, total: number) {
   if (key === "trash") return 11;
@@ -212,7 +217,7 @@ function packBand(
         size: it.size,
         inc: base.inc,
         node: base.node,
-        omega: RING_OMEGA,
+        omega: RING_OMEGA[key],
         urgency: it.s.status === "cancelled" ? 0 : orbitUrgency(it.s),
         px: 0,
         py: 0,
@@ -569,7 +574,7 @@ export function OrbitCanvas({
       );
 
       for (const d of sim.debris) {
-        d.angle += 0.12 * spd * dt;
+        d.angle += 0.22 * spd * dt;
         const wpos = worldOf(sim.trashR + d.rJit, d.angle, BAND.trash.inc, BAND.trash.node);
         const p = project(wpos.x, wpos.y, wpos.z, rot, tilt, zoom, cx, cy);
         ctx.fillStyle = `rgba(220,210,190,${Math.min(1, (d.a * p.p + 0.15) * (selected ? 0.25 : 1))})`;
@@ -673,40 +678,50 @@ export function OrbitCanvas({
         }
 
         if (!b.paused && b.kind !== "trash") {
-          const u = 0.35 + 0.65 * Math.max(0, Math.min(1, b.urgency));
-          const beat = 0.45 + 0.55 * Math.sin(now * (0.0028 + u * 0.012));
+          const u = Math.max(0, Math.min(1, b.urgency));
+          const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
+          const period = [3.6, 2.2, 1.35][step]!;
+          const amp = [0.14, 0.24, 0.38][step]!;
+          const beat = 0.5 + 0.5 * Math.sin((now / 1000) * ((Math.PI * 2) / period));
           const rgb = glowRgb(b.color, b.brandKey);
-          const rad = b.pr * (2.8 + u * 2.2 + beat * 0.55 + (focused ? 0.8 : 0));
-          const bloom = ctx.createRadialGradient(b.px, b.py, b.pr * 0.2, b.px, b.py, rad);
-          bloom.addColorStop(0, `rgba(${rgb}, ${0.15 + u * 0.2 * beat})`);
-          bloom.addColorStop(0.35, `rgba(${rgb}, ${0.45 + u * 0.4 * beat})`);
-          bloom.addColorStop(0.7, `rgba(${rgb}, ${0.2 + u * 0.22})`);
+          const halo = b.pr * (1.35 + amp * beat * 2 + (focused ? 0.35 : 0));
+          const bloom = ctx.createRadialGradient(b.px, b.py, Math.max(1, b.pr * 0.85), b.px, b.py, halo);
+          bloom.addColorStop(0, `rgba(${rgb}, 0)`);
+          bloom.addColorStop(0.35, `rgba(${rgb}, ${0.18 + amp * beat})`);
+          bloom.addColorStop(0.72, `rgba(${rgb}, ${0.42 + amp * beat * 0.5})`);
           bloom.addColorStop(1, `rgba(${rgb}, 0)`);
           ctx.fillStyle = bloom;
           ctx.beginPath();
-          ctx.arc(b.px, b.py, rad, 0, Math.PI * 2);
+          ctx.arc(b.px, b.py, halo, 0, Math.PI * 2);
           ctx.fill();
         }
 
         drawBrand(ctx, b.brandKey, b.px, b.py, b.pr);
 
         if (!b.paused && b.kind !== "trash") {
-          const u = 0.35 + 0.65 * Math.max(0, Math.min(1, b.urgency));
-          const beat = 0.45 + 0.55 * Math.sin(now * (0.0028 + u * 0.012));
+          const u = Math.max(0, Math.min(1, b.urgency));
+          const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
+          const period = [3.6, 2.2, 1.35][step]!;
+          const amp = [0.14, 0.24, 0.38][step]!;
+          const beat = 0.5 + 0.5 * Math.sin((now / 1000) * ((Math.PI * 2) / period));
           const rgb = glowRgb(b.color, b.brandKey);
-          ctx.strokeStyle = `rgba(${rgb}, ${0.55 + u * 0.45 * beat})`;
-          ctx.lineWidth = Math.max(2, b.pr * (focused ? 0.28 : 0.18));
+          ctx.strokeStyle = `rgba(${rgb}, ${0.4 + amp * beat})`;
+          ctx.lineWidth = Math.max(1.6, b.pr * (0.12 + amp * 0.2));
           ctx.beginPath();
-          ctx.arc(b.px, b.py, b.pr * (1.08 + beat * 0.1 * u), 0, Math.PI * 2);
+          ctx.arc(b.px, b.py, b.pr + b.pr * amp * beat, 0, Math.PI * 2);
           ctx.stroke();
         }
         if (focused) {
-          const pulse = 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(now * 0.007));
+          const u = Math.max(0, Math.min(1, b.urgency));
+          const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
+          const period = [3.6, 2.2, 1.35][step]!;
+          const amp = [0.16, 0.26, 0.4][step]!;
+          const beat = 0.5 + 0.5 * Math.sin((now / 1000) * ((Math.PI * 2) / period));
           const rgb = glowRgb(b.color, b.brandKey);
-          ctx.strokeStyle = `rgba(${rgb},${0.75 + pulse * 0.25})`;
-          ctx.lineWidth = Math.max(2.4, b.pr * 0.32);
+          ctx.strokeStyle = `rgba(${rgb},${0.7 + amp * beat * 0.3})`;
+          ctx.lineWidth = Math.max(2.2, b.pr * 0.26);
           ctx.beginPath();
-          ctx.arc(b.px, b.py, b.pr * (1.22 + pulse * 0.18), 0, Math.PI * 2);
+          ctx.arc(b.px, b.py, b.pr * (1.12 + amp * beat), 0, Math.PI * 2);
           ctx.stroke();
         }
         ctx.restore();
