@@ -335,6 +335,9 @@ export function OrbitCanvas({
     h: 1,
     dpr: 1,
     trashR: 240,
+    sunX: 0,
+    sunY: 0,
+    sunR: 20,
   });
 
   useEffect(() => {
@@ -357,6 +360,14 @@ export function OrbitCanvas({
       sim.targetZoom = 1;
       sim.targetTilt = 0.68;
       sim.targetCyFactor = 0.42;
+      return;
+    }
+    if (id === "__sun__") {
+      sim.focusId = "__sun__";
+      sim.followId = null;
+      sim.targetZoom = 1.18;
+      sim.targetTilt = 0.68;
+      sim.targetCyFactor = 0.38;
       return;
     }
     const body = sim.bodies.find((b) => b.id === id);
@@ -435,9 +446,12 @@ export function OrbitCanvas({
     };
     const onPointerMove = (e: PointerEvent) => {
       const rect = wrap.getBoundingClientRect();
-      const hovered = hitTest(e.clientX - rect.left, e.clientY - rect.top);
-      sim.hoverId = hovered?.id ?? null;
-      wrap.style.cursor = hovered ? "pointer" : sim.dragging ? "grabbing" : "grab";
+      const lx = e.clientX - rect.left;
+      const ly = e.clientY - rect.top;
+      const onSun = Math.hypot(lx - sim.sunX, ly - sim.sunY) < Math.max(22, sim.sunR * 1.08);
+      const hovered = onSun ? null : hitTest(lx, ly);
+      sim.hoverId = onSun ? "__sun__" : hovered?.id ?? null;
+      wrap.style.cursor = onSun || hovered ? "pointer" : sim.dragging ? "grabbing" : "grab";
       if (!sim.dragging || e.pointerId !== sim.pointerId) return;
       const dx = e.clientX - sim.lastX;
       const dy = e.clientY - sim.lastY;
@@ -454,8 +468,14 @@ export function OrbitCanvas({
       if (e.pointerId !== sim.pointerId) return;
       const rect = wrap.getBoundingClientRect();
       if (!sim.moved) {
-        const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
-        onSelectRef.current(hit ? hit.id : null);
+        const lx = e.clientX - rect.left;
+        const ly = e.clientY - rect.top;
+        if (Math.hypot(lx - sim.sunX, ly - sim.sunY) < Math.max(22, sim.sunR * 1.08)) {
+          onSelectRef.current("__sun__");
+        } else {
+          const hit = hitTest(lx, ly);
+          onSelectRef.current(hit ? hit.id : null);
+        }
       }
       sim.dragging = false;
       sim.pointerId = -1;
@@ -512,12 +532,26 @@ export function OrbitCanvas({
       const spd = speedRef.current;
       const dt = Math.min(0.05, sim.last ? (now - sim.last) / 1000 : 0.016);
       sim.last = now;
+      const w = sim.w;
+      const h = sim.h;
 
       if (sim.followId && !sim.dragging) {
         const tracked = sim.bodies.find((b) => b.id === sim.followId);
         if (tracked) {
-          const wpos = worldOf(tracked.radius, tracked.angle, tracked.inc, tracked.node);
-          sim.targetRot = Math.atan2(wpos.x, wpos.z) + Math.PI;
+          if (tracked.pr > 0) {
+            const dx = tracked.px - w * 0.5;
+            if (Math.abs(dx) > 0.6) sim.targetRot += (dx / Math.max(w, 1)) * 1.15;
+            const wantY =
+              leaderYRef.current != null ? leaderYRef.current - 96 : h * 0.34;
+            const dy = tracked.py - wantY;
+            if (Math.abs(dy) > 1.2) {
+              sim.targetCyFactor += dy / Math.max(h, 1) * 0.55;
+              sim.targetCyFactor = Math.max(0.24, Math.min(0.46, sim.targetCyFactor));
+            }
+          } else {
+            const wpos = worldOf(tracked.radius, tracked.angle, tracked.inc, tracked.node);
+            sim.targetRot = Math.atan2(wpos.x, wpos.z) + Math.PI;
+          }
         }
       }
 
@@ -530,8 +564,6 @@ export function OrbitCanvas({
       sim.zoom += (sim.targetZoom - sim.zoom) * ease;
       sim.cyFactor += (sim.targetCyFactor - sim.cyFactor) * ease;
 
-      const w = sim.w;
-      const h = sim.h;
       const cx = w * 0.5;
       const cy = h * sim.cyFactor;
       const fit = Math.min(w / 720, h / 720);
@@ -623,6 +655,9 @@ export function OrbitCanvas({
 
       const sunP = project(0, 0, 0, rot, tilt, zoom, cx, cy);
       const sunR = 38 * zoom * sunP.p;
+      sim.sunX = sunP.x;
+      sim.sunY = sunP.y;
+      sim.sunR = sunR;
 
       const drawSun = () => {
         const pulse = 0.94 + Math.sin(now * 0.0016) * 0.06;
@@ -761,8 +796,7 @@ export function OrbitCanvas({
         ctx.lineWidth = 1.35;
         ctx.beginPath();
         ctx.moveTo(ax, ay);
-        ctx.lineTo(ax, ay + Math.min(18, Math.max(8, (by - ay) * 0.2)));
-        ctx.lineTo(w * 0.5, by);
+        ctx.lineTo(ax, by);
         ctx.stroke();
         ctx.restore();
       }

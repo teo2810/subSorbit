@@ -14,7 +14,7 @@ import { GlowSwitch } from "./period-switch";
 import { SettingsSheet } from "./settings-sheet";
 import { SubForm } from "./sub-form";
 import { cn } from "@/lib/cn";
-import { activeMonthlyTotal, daysUntilRenewal, orbitUrgency } from "@/lib/domain";
+import { activeMonthlyTotal, computePeriodSpend, daysUntilRenewal, orbitUrgency, type SpendPeriod } from "@/lib/domain";
 import { formatEuroCompact } from "@/lib/format";
 import { BrandBadge, getBrand, preloadBrandIcons } from "@/lib/logos";
 import { useAppStore, type OrbitSpeed } from "@/lib/store";
@@ -57,6 +57,7 @@ export function AppShell() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
+  const [sunPeriod, setSunPeriod] = useState<SpendPeriod>("month");
   const [flash, setFlash] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
   const orbitBoxRef = useRef<HTMLDivElement>(null);
@@ -79,6 +80,11 @@ export function AppShell() {
   }, []);
 
   const monthly = activeMonthlyTotal(subscriptions);
+  const sunOn = focusId === "__sun__";
+  const sunSpend = useMemo(
+    () => computePeriodSpend(subscriptions, sunPeriod),
+    [subscriptions, sunPeriod],
+  );
   const detail = useMemo(
     () => subscriptions.find((s) => s.id === detailId) ?? null,
     [subscriptions, detailId],
@@ -93,7 +99,7 @@ export function AppShell() {
   );
 
   useLayoutEffect(() => {
-    if (!focused || tab !== "orbit") {
+    if ((!focused && !sunOn) || tab !== "orbit") {
       setLeaderY(null);
       return;
     }
@@ -108,7 +114,7 @@ export function AppShell() {
     if (orbitBoxRef.current) ro.observe(orbitBoxRef.current);
     if (calloutRef.current) ro.observe(calloutRef.current);
     return () => ro.disconnect();
-  }, [focused, tab]);
+  }, [focused, sunOn, tab]);
 
   const goTab = (t: TabId) => {
     if (t === tab) return;
@@ -242,7 +248,33 @@ export function AppShell() {
               </div>
             </header>
             <div className="pointer-events-none absolute inset-x-0 bottom-28 z-20 flex flex-col items-center px-4">
-                {focused ? (
+                {sunOn ? (
+                  <div ref={calloutRef} className="pointer-events-auto mb-2 flex max-w-[92%] items-center gap-2.5 rounded-2xl bg-[#12182ecc] px-3 py-2 shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-md">
+                    <div className="size-8 shrink-0 rounded-full bg-[radial-gradient(circle_at_35%_30%,#fff,rgba(34,211,238,0.9)_45%,rgba(14,165,233,0.4)_100%)] shadow-[0_0_16px_rgba(34,211,238,0.55)]" />
+                    <div className="min-w-0">
+                      <p className="truncate font-display text-sm font-medium">
+                        {sunPeriod === "month" ? "Questo mese" : "Quest’anno"}
+                      </p>
+                      <p className="text-[11px] text-muted">
+                        pagati {formatEuroCompact(sunSpend.paid)}
+                        {" · "}
+                        previsti {formatEuroCompact(sunSpend.due)}
+                      </p>
+                    </div>
+                    <div className="pointer-events-auto shrink-0">
+                      <GlowSwitch
+                        compact
+                        live
+                        value={sunPeriod}
+                        onChange={setSunPeriod}
+                        options={[
+                          { id: "month", label: "Mese" },
+                          { id: "year", label: "Anno" },
+                        ]}
+                      />
+                    </div>
+                  </div>
+                ) : focused ? (
                   <div ref={calloutRef} className="pointer-events-auto mb-2 flex max-w-[92%] items-center gap-2.5 rounded-2xl bg-[#12182ecc] px-3 py-2 shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-md">
                     <BrandBadge brandKey={focused.brandKey} name={focused.name} size={28} />
                     <div className="min-w-0">
