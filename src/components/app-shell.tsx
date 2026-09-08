@@ -333,7 +333,7 @@ function OrbitIconStrip({
   const scroller = useRef<HTMLDivElement>(null);
   const unit = useRef(0);
   const jumping = useRef(false);
-  const COPIES = 5;
+  const COPIES = items.length <= 4 ? 1 : 5;
 
   useEffect(() => {
     const el = scroller.current;
