@@ -36,7 +36,7 @@ const RULES = [
   {
     icon: Sparkles,
     title: "Selezione",
-    text: "Tocca un pianeta o l’icona nella barra: zoom, la camera lo segue, bagliore del colore del brand. Gli altri si smorzano e si apre la scheda.",
+    text: "Tocca un pianeta o l’icona nella barra: stessa cosa. Zoom, camera fissa, direttrice in basso con nome, prezzo e scadenza. La matita apre la modifica.",
   },
   {
     icon: Trash2,
@@ -68,8 +68,8 @@ const GESTURES = [
   },
   {
     icon: Grip,
-    title: "Long-press sulla card",
-    text: "Zoom rapido sul pianeta: la telecamera lo segue lungo l’orbita.",
+    title: "Tocca di nuovo",
+    text: "Un secondo tap sul vuoto o sulla stessa icona chiude la selezione.",
   },
   {
     icon: Timer,

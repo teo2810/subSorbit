@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { activeMonthlyTotal, classify, monthlyEquivalent, orbitUrgency } from "@/lib/domain";
+import { activeMonthlyTotal, classify, daysUntilRenewal, monthlyEquivalent, orbitUrgency } from "@/lib/domain";
 import { formatEuroCompact } from "@/lib/format";
 import { drawBrand, getBrand, preloadBrandIcons } from "@/lib/logos";
 import type { StatusFilter, Subscription } from "@/lib/types";
@@ -28,6 +28,8 @@ interface Body {
   node: number;
   omega: number;
   urgency: number;
+  days: number;
+  price: number;
   px: number;
   py: number;
   pz: number;
@@ -227,6 +229,8 @@ function packBand(
         node: base.node,
         omega: RING_OMEGA[key],
         urgency: it.s.status === "cancelled" ? 0 : orbitUrgency(it.s),
+        days: daysUntilRenewal(it.s),
+        price: it.s.price,
         px: 0,
         py: 0,
         pz: 0,
@@ -689,22 +693,17 @@ export function OrbitCanvas({
           const u = Math.max(0, Math.min(1, b.urgency));
           const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
           const period = [3.6, 2.2, 1.35][step]!;
-          const amp = [0.16, 0.28, 0.42][step]!;
+          const amp = [0.18, 0.3, 0.46][step]!;
           const beat = 0.5 + 0.5 * Math.sin((now / 1000) * ((Math.PI * 2) / period));
           const rgb = glowRgb(b.color, b.brandKey);
-          const inner = Math.max(1, b.pr * 0.72);
-          const outer = b.pr * (1.75 + amp * beat * 1.6 + (focused ? 0.45 : 0));
-          const a = 0.38 + amp * beat * 0.5;
-          const bloom = ctx.createRadialGradient(b.px, b.py, inner, b.px, b.py, outer);
-          bloom.addColorStop(0, `rgba(${rgb}, 0)`);
-          bloom.addColorStop(0.22, `rgba(${rgb}, ${a * 0.25})`);
-          bloom.addColorStop(0.48, `rgba(${rgb}, ${a})`);
-          bloom.addColorStop(0.78, `rgba(${rgb}, ${a * 0.35})`);
-          bloom.addColorStop(1, `rgba(${rgb}, 0)`);
-          ctx.fillStyle = bloom;
+          ctx.save();
+          ctx.shadowColor = `rgb(${rgb})`;
+          ctx.shadowBlur = Math.max(10, b.pr * (2.4 + amp * beat * 2.8 + (focused ? 1.2 : 0)));
+          ctx.fillStyle = `rgba(${rgb}, ${0.55 + amp * beat * 0.35})`;
           ctx.beginPath();
-          ctx.arc(b.px, b.py, outer, 0, Math.PI * 2);
+          ctx.arc(b.px, b.py, Math.max(2, b.pr * 0.92), 0, Math.PI * 2);
           ctx.fill();
+          ctx.restore();
         }
 
         drawBrand(ctx, b.brandKey, b.px, b.py, b.pr);
@@ -727,7 +726,23 @@ export function OrbitCanvas({
       for (const b of far) drawBody(b);
       drawSun();
       for (const b of near) drawBody(b);
-      if (focusedBody) drawBody(focusedBody);
+      if (focusedBody) {
+        drawBody(focusedBody);
+        const rgb = glowRgb(focusedBody.color, focusedBody.brandKey);
+        const ax = focusedBody.px;
+        const ay = focusedBody.py + focusedBody.pr + 6;
+        const bx = w * 0.5;
+        const by = h - 96;
+        ctx.save();
+        ctx.strokeStyle = `rgba(${rgb},0.7)`;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax, ay + Math.max(12, (by - ay) * 0.22));
+        ctx.lineTo(bx, by);
+        ctx.stroke();
+        ctx.restore();
+      }
 
       raf = requestAnimationFrame(tick);
     };

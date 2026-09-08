@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CircleHelp } from "lucide-react";
+import { CircleHelp, Pencil } from "lucide-react";
 import { Toaster } from "sonner";
 import { BottomNav } from "./bottom-nav";
 import { CalendarView } from "./calendar-view";
@@ -43,6 +43,7 @@ export function AppShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [flash, setFlash] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
   const tabRef = useRef(tab);
@@ -65,6 +66,14 @@ export function AppShell() {
   const detail = useMemo(
     () => subscriptions.find((s) => s.id === detailId) ?? null,
     [subscriptions, detailId],
+  );
+  const focused = useMemo(
+    () => subscriptions.find((s) => s.id === focusId) ?? null,
+    [subscriptions, focusId],
+  );
+  const editing = useMemo(
+    () => subscriptions.find((s) => s.id === editId) ?? null,
+    [subscriptions, editId],
   );
 
   const goTab = (t: TabId) => {
@@ -178,15 +187,10 @@ export function AppShell() {
                 filter={filter}
                 speed={orbitSpeed}
                 focusId={focusId}
-                pinnedId={detailId}
+                pinnedId={focusId}
                 onSelect={(id) => {
-                  if (!id) {
-                    setDetailId(null);
-                    setFocusId(null);
-                    return;
-                  }
+                  setDetailId(null);
                   setFocusId(id);
-                  setDetailId(id);
                 }}
                 onFocusDone={() => setFocusId(null)}
               />
@@ -202,6 +206,31 @@ export function AppShell() {
                 </div>
               </div>
             </header>
+            {focused ? (
+              <div className="pointer-events-none absolute inset-x-0 bottom-[7.6rem] z-30 flex justify-center px-4">
+                <div className="pointer-events-auto flex max-w-[92%] items-center gap-2.5 rounded-2xl bg-[#12182ecc] px-3 py-2 shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-md">
+                  <BrandBadge brandKey={focused.brandKey} name={focused.name} size={28} />
+                  <div className="min-w-0">
+                    <p className="truncate font-display text-sm font-medium">{focused.name}</p>
+                    <p className="text-[11px] text-muted">
+                      {formatEuroCompact(focused.price)}
+                      {" · "}
+                      {daysUntilRenewal(focused) <= 0
+                        ? "scade oggi"
+                        : `tra ${daysUntilRenewal(focused)}g`}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Modifica"
+                    onClick={() => setEditId(focused.id)}
+                    className="glow-tap ml-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-cyan text-void"
+                  >
+                    <Pencil className="size-3.5" strokeWidth={2.4} />
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <div className="pointer-events-none absolute inset-x-0 bottom-28 z-20 flex flex-col items-center px-4">
                 <div className="pointer-events-auto mb-2 w-full max-w-[720px]">
                   <OrbitIconStrip
@@ -209,12 +238,8 @@ export function AppShell() {
                     filter={filter}
                     selectedId={focusId}
                     onPick={(id) => {
-                      if (focusId === id) {
-                        setFocusId(null);
-                        return;
-                      }
                       setDetailId(null);
-                      setFocusId(id);
+                      setFocusId(focusId === id ? null : id);
                     }}
                   />
                 </div>
@@ -287,11 +312,17 @@ export function AppShell() {
         />
       )}
 
-      {formOpen && (
+      {(formOpen || editing) && (
         <SubForm
-          onClose={() => setFormOpen(false)}
+          editing={editing}
+          fromCallout={Boolean(editing)}
+          onClose={() => {
+            setFormOpen(false);
+            setEditId(null);
+          }}
           onSaved={(id) => {
             setFormOpen(false);
+            setEditId(null);
             goTab("orbit");
             setFocusId(id);
           }}

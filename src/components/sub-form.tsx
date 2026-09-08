@@ -7,6 +7,7 @@ import {
   FREQUENCIES,
   nextFromStart,
   nextOccurrence,
+  startedOf,
 } from "@/lib/domain";
 import { BrandBadge, getBrand, matchBrands } from "@/lib/logos";
 import { CloseButton } from "./close-button";
@@ -19,17 +20,22 @@ import type { CategoryId, Frequency, Subscription } from "@/lib/types";
 export function SubForm({
   onClose,
   onSaved,
+  editing = null,
+  fromCallout = false,
 }: {
   onClose: () => void;
   onSaved: (id: string) => void;
+  editing?: Subscription | null;
+  fromCallout?: boolean;
 }) {
   const addSubscription = useAppStore((s) => s.addSubscription);
-  const initial = emptySubscription();
+  const updateSubscription = useAppStore((s) => s.updateSubscription);
+  const initial = editing ?? emptySubscription();
   const [name, setName] = useState(initial.name);
   const [category, setCategory] = useState<CategoryId>(initial.category);
   const [price, setPrice] = useState(String(initial.price));
   const [frequency, setFrequency] = useState<Frequency>(initial.frequency);
-  const [startedAt, setStartedAt] = useState(initial.startedAt ?? initial.nextRenewal);
+  const [startedAt, setStartedAt] = useState(startedOf(initial) || initial.nextRenewal);
   const [brandKey, setBrandKey] = useState(initial.brandKey);
   const [notes, setNotes] = useState(initial.notes);
   const [more, setMore] = useState(true);
@@ -78,6 +84,12 @@ export function SubForm({
       brandKey: brandKey || "custom",
       notes: notes.trim(),
     };
+    if (editing) {
+      updateSubscription(editing.id, payload);
+      toast.success("Aggiornato");
+      onSaved(editing.id);
+      return;
+    }
     const id = addSubscription(payload);
     toast.success("In orbita");
     onSaved(id);
@@ -93,7 +105,7 @@ export function SubForm({
         onClick={onClose}
       />
       <div
-        className="sheet-in relative z-10 flex max-h-[88%] w-full max-w-[480px] flex-col overflow-hidden rounded-t-xl"
+        className={`${fromCallout ? "callout-sheet-in" : "sheet-in"} relative z-10 flex max-h-[88%] w-full max-w-[480px] flex-col overflow-hidden rounded-t-xl`}
         style={{
           background: `linear-gradient(180deg, ${tint}26 0%, rgb(12 17 38 / 0.97) 30%)`,
           boxShadow: `0 0 0 1px ${tint}44, 0 -14px 40px rgb(0 0 0 / 0.4)`,
@@ -111,9 +123,11 @@ export function SubForm({
           <div className="relative mb-3 flex items-start">
             <div className="min-w-0 flex-1 pr-10">
               <h2 className="truncate text-lg font-semibold">
-                {picked && name ? name : "Nuovo abbonamento"}
+                {editing ? name || "Modifica" : picked && name ? name : "Nuovo abbonamento"}
               </h2>
-              <p className="text-xs text-muted">Scegli un brand, il resto si compila da solo</p>
+              <p className="text-xs text-muted">
+                {editing ? "Aggiorna i dati e salva" : "Scegli un brand, il resto si compila da solo"}
+              </p>
             </div>
             <CloseButton onClick={onClose} className="absolute right-0 top-0" />
           </div>
@@ -216,6 +230,13 @@ export function SubForm({
           </button>
         </div>
       </div>
+      <style>{`
+        @keyframes callout-sheet-in {
+          from { transform: translateY(28px) scale(0.92); opacity: 0; }
+          to { transform: none; opacity: 1; }
+        }
+        .callout-sheet-in { animation: callout-sheet-in 320ms cubic-bezier(0.22,1,0.36,1) both; transform-origin: 50% 100%; }
+      `}</style>
     </div>
   );
 }
