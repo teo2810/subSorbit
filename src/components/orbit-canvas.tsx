@@ -160,9 +160,10 @@ const BAND = {
 } as const;
 
 function sizeStep(share: number) {
-  if (share >= 0.18) return 18;
-  if (share >= 0.08) return 14;
-  return 10;
+  if (share >= 0.22) return 22;
+  if (share >= 0.12) return 16;
+  if (share >= 0.05) return 12;
+  return 8;
 }
 
 function bandOf(s: Subscription, total: number) {
@@ -697,18 +698,19 @@ export function OrbitCanvas({
           const u = Math.max(0, Math.min(1, b.urgency));
           const step = u >= 0.66 ? 2 : u >= 0.33 ? 1 : 0;
           const period = [3.8, 2.4, 1.5][step]!;
-          const amp = [0.2, 0.34, 0.52][step]!;
+          const amp = [0.16, 0.28, 0.42][step]!;
           const beat = 0.5 + 0.5 * Math.sin((now / 1000) * ((Math.PI * 2) / period));
           const rgb = glowRgb(b.color, b.brandKey);
-          const inner = Math.max(1, b.pr * 0.8);
-          const outer = b.pr * (2.15 + amp * beat * 1.5 + (focused ? 0.5 : 0));
-          const a = (focused ? 1 : 0.78) + amp * beat * 0.4;
+          const inner = Math.max(1, b.pr * 0.95);
+          const outer = b.pr * (2.55 + amp * beat * 1.15 + (focused ? 0.35 : 0));
+          const a = (focused ? 0.58 : 0.4) + amp * beat * 0.22;
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
           const halo = ctx.createRadialGradient(b.px, b.py, inner, b.px, b.py, outer);
-          halo.addColorStop(0, `rgba(${rgb}, ${a * 0.2})`);
-          halo.addColorStop(0.38, `rgba(${rgb}, ${a * 0.6})`);
-          halo.addColorStop(0.7, `rgba(${rgb}, ${a})`);
+          halo.addColorStop(0, `rgba(${rgb}, 0)`);
+          halo.addColorStop(0.28, `rgba(${rgb}, ${a * 0.25})`);
+          halo.addColorStop(0.55, `rgba(${rgb}, ${a})`);
+          halo.addColorStop(0.82, `rgba(${rgb}, ${a * 0.28})`);
           halo.addColorStop(1, `rgba(${rgb}, 0)`);
           ctx.fillStyle = halo;
           ctx.beginPath();
