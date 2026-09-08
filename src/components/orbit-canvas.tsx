@@ -96,7 +96,13 @@ function worldOf(radius: number, angle: number, inc: number, node: number) {
 }
 
 function hexRgb(color: string): string {
-  const m = color.replace("#", "").trim();
+  const raw = color.trim();
+  const rgb = raw.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgb) return `${rgb[1]}, ${rgb[2]}, ${rgb[3]}`;
+  let m = raw.replace("#", "");
+  if (m.length === 3 && /^[0-9a-fA-F]+$/.test(m)) {
+    m = `${m[0]}${m[0]}${m[1]}${m[1]}${m[2]}${m[2]}`;
+  }
   if (m.length === 6 && /^[0-9a-fA-F]+$/.test(m)) {
     return `${parseInt(m.slice(0, 2), 16)}, ${parseInt(m.slice(2, 4), 16)}, ${parseInt(m.slice(4, 6), 16)}`;
   }
@@ -116,9 +122,9 @@ const BAND = {
 } as const;
 
 function sizeStep(share: number) {
-  if (share >= 0.18) return 18;
-  if (share >= 0.08) return 14;
-  return 10;
+  if (share >= 0.18) return 26;
+  if (share >= 0.08) return 20;
+  return 16;
 }
 
 function bandOf(s: Subscription, total: number) {
@@ -136,7 +142,7 @@ const RING_OMEGA = {
 } as const;
 
 function bodySize(s: Subscription, key: keyof typeof BAND, total: number) {
-  if (key === "trash") return 11;
+  if (key === "trash") return 15;
   const share = total > 0 ? monthlyEquivalent(s) / Math.max(total, 0.01) : 0.08;
   return sizeStep(share);
 }
@@ -312,9 +318,9 @@ export function OrbitCanvas({
     }
     sim.focusId = id;
     sim.followId = id;
-    sim.targetZoom = pinnedId ? 2.35 : 2.45;
-    sim.targetTilt = pinnedId ? 0.42 : 0.48;
-    sim.targetCyFactor = pinnedId ? 0.34 : 0.4;
+    sim.targetZoom = pinnedId ? 1.72 : 1.85;
+    sim.targetTilt = pinnedId ? 0.52 : 0.58;
+    sim.targetCyFactor = pinnedId ? 0.28 : 0.36;
   }, [focusId, pinnedId]);
 
   useEffect(() => {
@@ -490,7 +496,7 @@ export function OrbitCanvas({
 
       const w = sim.w;
       const h = sim.h;
-      const fit = Math.min(w / 720, h / 720);
+      const fit = Math.min(w / 520, h / 620);
       const zoomPre = sim.zoom * fit;
       const cx0 = w * 0.5;
       const cy0 = h * sim.cyFactor;
@@ -499,7 +505,7 @@ export function OrbitCanvas({
         if (tracked) {
           const wpos = worldOf(tracked.radius, tracked.angle, tracked.inc, tracked.node);
           const p0 = project(wpos.x, wpos.y, wpos.z, sim.rot, sim.tilt, zoomPre, cx0, cy0);
-          const aimY = h * (sim.focusId ? 0.36 : 0.42);
+          const aimY = h * (sim.focusId ? 0.30 : 0.38);
           sim.targetPanX = cx0 - p0.x;
           sim.targetPanY = aimY - p0.y;
         }
@@ -682,11 +688,11 @@ export function OrbitCanvas({
           const u = 0.28 + 0.72 * Math.max(0, Math.min(1, b.urgency));
           const beat = 0.45 + 0.55 * Math.sin(now * (0.0024 + u * 0.01));
           const rgb = hexRgb(b.color);
-          const rad = b.pr * (2.4 + u * 1.8 + beat * 0.45 + (sim.focusId === b.id ? 0.55 : 0));
-          const bloom = ctx.createRadialGradient(b.px, b.py, b.pr * 0.2, b.px, b.py, rad);
-          bloom.addColorStop(0, `rgba(255,255,255,${0.28 + u * 0.35 * beat})`);
-          bloom.addColorStop(0.22, `rgba(${rgb}, ${0.55 + u * 0.4 * beat})`);
-          bloom.addColorStop(0.55, `rgba(${rgb}, ${0.22 + u * 0.28})`);
+          const rad = b.pr * (2.8 + u * 2.2 + beat * 0.55 + (sim.focusId === b.id ? 0.7 : 0));
+          const bloom = ctx.createRadialGradient(b.px, b.py, b.pr * 0.15, b.px, b.py, rad);
+          bloom.addColorStop(0, `rgba(255,255,255,${0.35 + u * 0.4 * beat})`);
+          bloom.addColorStop(0.2, `rgba(${rgb}, ${0.7 + u * 0.3 * beat})`);
+          bloom.addColorStop(0.5, `rgba(${rgb}, ${0.32 + u * 0.3})`);
           bloom.addColorStop(1, `rgba(${rgb}, 0)`);
           ctx.fillStyle = bloom;
           ctx.beginPath();
@@ -731,7 +737,7 @@ export function OrbitCanvas({
           ctx.font = `700 ${Math.max(9, Math.min(11, b.pr * 0.55))}px Outfit, sans-serif`;
           ctx.textAlign = "center";
           ctx.textBaseline = "top";
-          ctx.fillStyle = b.days <= 3 ? "rgba(34,211,238,0.95)" : "rgba(238,242,255,0.75)";
+          ctx.fillStyle = b.days <= 3 ? `rgba(${hexRgb(b.color)},0.95)` : "rgba(238,242,255,0.75)";
           ctx.fillText(b.days === 0 ? "oggi" : `${b.days}g`, b.px, b.py + b.pr + 4);
         }
       };
