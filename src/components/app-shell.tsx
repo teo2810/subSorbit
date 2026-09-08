@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CircleHelp, Pencil } from "lucide-react";
 import { Toaster } from "sonner";
 import { BottomNav } from "./bottom-nav";
@@ -46,6 +46,9 @@ export function AppShell() {
   const [editId, setEditId] = useState<string | null>(null);
   const [flash, setFlash] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
+  const orbitBoxRef = useRef<HTMLDivElement>(null);
+  const calloutRef = useRef<HTMLDivElement>(null);
+  const [leaderY, setLeaderY] = useState<number | null>(null);
   const tabRef = useRef(tab);
   tabRef.current = tab;
   const blockRef = useRef({ form: false, settings: false, guide: false, detail: false });
@@ -75,6 +78,24 @@ export function AppShell() {
     () => subscriptions.find((s) => s.id === editId) ?? null,
     [subscriptions, editId],
   );
+
+  useLayoutEffect(() => {
+    if (!focused || tab !== "orbit") {
+      setLeaderY(null);
+      return;
+    }
+    const measure = () => {
+      const box = orbitBoxRef.current;
+      const card = calloutRef.current;
+      if (!box || !card) return;
+      setLeaderY(card.getBoundingClientRect().top - box.getBoundingClientRect().top);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (orbitBoxRef.current) ro.observe(orbitBoxRef.current);
+    if (calloutRef.current) ro.observe(calloutRef.current);
+    return () => ro.disconnect();
+  }, [focused, tab]);
 
   const goTab = (t: TabId) => {
     if (t === tab) return;
@@ -181,13 +202,14 @@ export function AppShell() {
             className="absolute inset-0 overflow-hidden"
             style={{ display: tab === "orbit" ? "block" : "none" }}
           >
-            <div className="absolute inset-0 pb-24">
+            <div ref={orbitBoxRef} className="absolute inset-0 pb-24">
               <OrbitCanvas
                 subscriptions={subscriptions}
                 filter={filter}
                 speed={orbitSpeed}
                 focusId={focusId}
                 pinnedId={focusId}
+                leaderY={leaderY}
                 onSelect={(id) => {
                   setDetailId(null);
                   setFocusId(id);
@@ -208,7 +230,7 @@ export function AppShell() {
             </header>
             <div className="pointer-events-none absolute inset-x-0 bottom-28 z-20 flex flex-col items-center px-4">
                 {focused ? (
-                  <div className="pointer-events-auto mb-2 flex max-w-[92%] items-center gap-2.5 rounded-2xl bg-[#12182ecc] px-3 py-2 shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-md">
+                  <div ref={calloutRef} className="pointer-events-auto mb-2 flex max-w-[92%] items-center gap-2.5 rounded-2xl bg-[#12182ecc] px-3 py-2 shadow-[0_0_0_1px_rgba(255,255,255,0.1),0_10px_28px_rgba(0,0,0,0.35)] backdrop-blur-md">
                     <BrandBadge brandKey={focused.brandKey} name={focused.name} size={28} />
                     <div className="min-w-0">
                       <p className="truncate font-display text-sm font-medium">{focused.name}</p>

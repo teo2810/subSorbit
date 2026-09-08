@@ -10,6 +10,7 @@ interface Props {
   speed: number;
   focusId: string | null;
   pinnedId?: string | null;
+  leaderY?: number | null;
   onSelect: (id: string | null) => void;
   onFocusDone: () => void;
 }
@@ -116,6 +117,7 @@ const GLOW_HEX: Record<string, string> = {
   amazonprime: "#FF9900",
   amazonmusic: "#25D1DA",
   spotify: "#1ED760",
+  spotifypremium: "#1ED760",
   netflix: "#E50914",
   disney: "#113CCF",
   disneyplus: "#113CCF",
@@ -279,6 +281,7 @@ export function OrbitCanvas({
   speed,
   focusId,
   pinnedId = null,
+  leaderY = null,
   onSelect,
   onFocusDone,
 }: Props) {
@@ -287,8 +290,10 @@ export function OrbitCanvas({
   const onSelectRef = useRef(onSelect);
   const onFocusDoneRef = useRef(onFocusDone);
   const speedRef = useRef(speed);
+  const leaderYRef = useRef(leaderY);
   onSelectRef.current = onSelect;
   onFocusDoneRef.current = onFocusDone;
+  leaderYRef.current = leaderY;
   speedRef.current = speed;
 
   const simRef = useRef({
@@ -571,12 +576,8 @@ export function OrbitCanvas({
           b.radius,
           b.inc,
           b.node,
-          on
-            ? `rgb(${glowRgb(selected?.color ?? b.color, selected?.brandKey ?? b.brandKey)})`
-            : faded
-              ? "rgba(170,220,255,0.08)"
-              : "rgba(170,220,255,0.28)",
-          on ? 2 : faded ? 0.6 : 0.9,
+          faded ? "rgba(170,220,255,0.1)" : "rgba(170,220,255,0.3)",
+          on ? 1.35 : faded ? 0.7 : 0.95,
         );
       }
       drawRing(
@@ -699,15 +700,15 @@ export function OrbitCanvas({
           const amp = [0.2, 0.34, 0.52][step]!;
           const beat = 0.5 + 0.5 * Math.sin((now / 1000) * ((Math.PI * 2) / period));
           const rgb = glowRgb(b.color, b.brandKey);
-          const inner = Math.max(1, b.pr * 0.9);
-          const outer = b.pr * (1.7 + amp * beat * 1.15 + (focused ? 0.28 : 0));
-          const a = (focused ? 0.9 : 0.62) + amp * beat * 0.35;
+          const inner = Math.max(1, b.pr * 0.8);
+          const outer = b.pr * (2.15 + amp * beat * 1.5 + (focused ? 0.5 : 0));
+          const a = (focused ? 1 : 0.78) + amp * beat * 0.4;
           ctx.save();
           ctx.globalCompositeOperation = "lighter";
           const halo = ctx.createRadialGradient(b.px, b.py, inner, b.px, b.py, outer);
-          halo.addColorStop(0, `rgba(${rgb}, 0)`);
-          halo.addColorStop(0.45, `rgba(${rgb}, ${a * 0.35})`);
-          halo.addColorStop(0.72, `rgba(${rgb}, ${a})`);
+          halo.addColorStop(0, `rgba(${rgb}, ${a * 0.2})`);
+          halo.addColorStop(0.38, `rgba(${rgb}, ${a * 0.6})`);
+          halo.addColorStop(0.7, `rgba(${rgb}, ${a})`);
           halo.addColorStop(1, `rgba(${rgb}, 0)`);
           ctx.fillStyle = halo;
           ctx.beginPath();
@@ -740,13 +741,16 @@ export function OrbitCanvas({
         drawBody(focusedBody);
         const rgb = glowRgb(focusedBody.color, focusedBody.brandKey);
         const ax = focusedBody.px;
-        const ay = focusedBody.py + focusedBody.pr + 3;
+        const ay = focusedBody.py + focusedBody.pr + 4;
+        const ty = leaderYRef.current;
+        const by = ty != null && ty > ay + 8 ? ty : Math.min(h * 0.72, ay + 80);
         ctx.save();
-        ctx.strokeStyle = `rgba(${rgb},0.75)`;
-        ctx.lineWidth = 1.3;
+        ctx.strokeStyle = `rgba(${rgb},0.8)`;
+        ctx.lineWidth = 1.35;
         ctx.beginPath();
         ctx.moveTo(ax, ay);
-        ctx.lineTo(ax, ay + 22);
+        ctx.lineTo(ax, ay + Math.min(18, Math.max(8, (by - ay) * 0.2)));
+        ctx.lineTo(w * 0.5, by);
         ctx.stroke();
         ctx.restore();
       }
