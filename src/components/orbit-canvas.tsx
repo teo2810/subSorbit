@@ -11,6 +11,7 @@ interface Props {
   focusId: string | null;
   pinnedId?: string | null;
   leaderY?: number | null;
+  centerLabel?: string | null;
   onSelect: (id: string | null) => void;
   onFocusDone: () => void;
 }
@@ -294,6 +295,7 @@ export function OrbitCanvas({
   focusId,
   pinnedId = null,
   leaderY = null,
+  centerLabel = null,
   onSelect,
   onFocusDone,
 }: Props) {
@@ -303,9 +305,11 @@ export function OrbitCanvas({
   const onFocusDoneRef = useRef(onFocusDone);
   const speedRef = useRef(speed);
   const leaderYRef = useRef(leaderY);
+  const centerLabelRef = useRef(centerLabel);
   onSelectRef.current = onSelect;
   onFocusDoneRef.current = onFocusDone;
   leaderYRef.current = leaderY;
+  centerLabelRef.current = centerLabel;
   speedRef.current = speed;
 
   const simRef = useRef({
@@ -347,7 +351,8 @@ export function OrbitCanvas({
   useEffect(() => {
     const sim = simRef.current;
     sim.bodies = buildBodies(subscriptions, filter);
-    sim.totalLabel = formatEuroCompact(activeMonthlyTotal(subscriptions));
+    sim.totalLabel =
+      centerLabelRef.current || formatEuroCompact(activeMonthlyTotal(subscriptions));
     sim.trashR = trashRadius(sim.bodies);
   }, [subscriptions, filter]);
 
@@ -377,9 +382,9 @@ export function OrbitCanvas({
     }
     sim.focusId = id;
     sim.followId = id;
-    sim.targetZoom = pinnedId ? 2.05 : 2.2;
-    sim.targetTilt = pinnedId ? 0.46 : 0.5;
-    sim.targetCyFactor = pinnedId ? 0.32 : 0.4;
+    sim.targetZoom = pinnedId ? 1.72 : 1.85;
+    sim.targetTilt = pinnedId ? 0.52 : 0.55;
+    sim.targetCyFactor = 0.34;
   }, [focusId, pinnedId]);
 
   useEffect(() => {
@@ -538,24 +543,12 @@ export function OrbitCanvas({
       if (sim.followId && !sim.dragging) {
         const tracked = sim.bodies.find((b) => b.id === sim.followId);
         if (tracked) {
-          if (tracked.pr > 0) {
-            const dx = tracked.px - w * 0.5;
-            if (Math.abs(dx) > 0.6) sim.targetRot += (dx / Math.max(w, 1)) * 1.15;
-            const wantY =
-              leaderYRef.current != null ? leaderYRef.current - 96 : h * 0.34;
-            const dy = tracked.py - wantY;
-            if (Math.abs(dy) > 1.2) {
-              sim.targetCyFactor += dy / Math.max(h, 1) * 0.55;
-              sim.targetCyFactor = Math.max(0.24, Math.min(0.46, sim.targetCyFactor));
-            }
-          } else {
-            const wpos = worldOf(tracked.radius, tracked.angle, tracked.inc, tracked.node);
-            sim.targetRot = Math.atan2(wpos.x, wpos.z) + Math.PI;
-          }
+          const wpos = worldOf(tracked.radius, tracked.angle, tracked.inc, tracked.node);
+          sim.targetRot = Math.atan2(wpos.x, wpos.z);
         }
       }
 
-      const ease = 1 - Math.exp(-dt * 5.2);
+      const ease = 1 - Math.exp(-dt * 3.6);
       let dRot = sim.targetRot - sim.rot;
       while (dRot > Math.PI) dRot -= Math.PI * 2;
       while (dRot < -Math.PI) dRot += Math.PI * 2;
@@ -704,7 +697,7 @@ export function OrbitCanvas({
         ctx.font = `700 ${Math.max(12, sunR * 0.34)}px Outfit, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(sim.totalLabel, sunP.x, sunP.y);
+        ctx.fillText(centerLabelRef.current || sim.totalLabel, sunP.x, sunP.y);
       };
 
       const drawBody = (b: Body) => {
@@ -784,21 +777,26 @@ export function OrbitCanvas({
       for (const b of far) drawBody(b);
       drawSun();
       for (const b of near) drawBody(b);
-      if (focusedBody) {
-        drawBody(focusedBody);
-        const rgb = glowRgb(focusedBody.color, focusedBody.brandKey);
-        const ax = focusedBody.px;
-        const ay = focusedBody.py + focusedBody.pr + 4;
+      const drawLeader = (ax: number, ay: number, color: string) => {
         const ty = leaderYRef.current;
         const by = ty != null && ty > ay + 8 ? ty : Math.min(h * 0.72, ay + 80);
+        const mid = w * 0.5;
         ctx.save();
-        ctx.strokeStyle = `rgba(${rgb},0.8)`;
+        ctx.strokeStyle = color;
         ctx.lineWidth = 1.35;
         ctx.beginPath();
         ctx.moveTo(ax, ay);
-        ctx.lineTo(ax, by);
+        ctx.lineTo(ax, ay + Math.min(16, Math.max(8, (by - ay) * 0.18)));
+        ctx.lineTo(mid, by);
         ctx.stroke();
         ctx.restore();
+      };
+      if (focusedBody) {
+        drawBody(focusedBody);
+        const rgb = glowRgb(focusedBody.color, focusedBody.brandKey);
+        drawLeader(focusedBody.px, focusedBody.py + focusedBody.pr + 4, `rgba(${rgb},0.8)`);
+      } else if (fid === "__sun__") {
+        drawLeader(sunP.x, sunP.y + sunR + 4, "rgba(34,211,238,0.75)");
       }
 
       raf = requestAnimationFrame(tick);
