@@ -544,7 +544,11 @@ export function OrbitCanvas({
         const tracked = sim.bodies.find((b) => b.id === sim.followId);
         if (tracked) {
           const wpos = worldOf(tracked.radius, tracked.angle, tracked.inc, tracked.node);
-          sim.targetRot = Math.atan2(wpos.x, wpos.z);
+          const rA = Math.atan2(wpos.x, wpos.z);
+          const rB = rA + Math.PI;
+          const zA = project(wpos.x, wpos.y, wpos.z, rA, sim.tilt, 1, 0, 0).z;
+          const zB = project(wpos.x, wpos.y, wpos.z, rB, sim.tilt, 1, 0, 0).z;
+          sim.targetRot = zA <= zB ? rA : rB;
         }
       }
 
@@ -694,10 +698,12 @@ export function OrbitCanvas({
         ctx.fill();
 
         ctx.fillStyle = "rgba(8,20,40,0.78)";
-        ctx.font = `700 ${Math.max(12, sunR * 0.34)}px Outfit, sans-serif`;
+        const label = centerLabelRef.current || sim.totalLabel;
+        const scale = label.length > 10 ? 0.24 : label.length > 7 ? 0.28 : 0.34;
+        ctx.font = `700 ${Math.max(10, sunR * scale)}px Outfit, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(centerLabelRef.current || sim.totalLabel, sunP.x, sunP.y);
+        ctx.fillText(label, sunP.x, sunP.y);
       };
 
       const drawBody = (b: Body) => {

@@ -229,7 +229,7 @@ export function AppShell() {
                 focusId={focusId}
                 pinnedId={focusId}
                 leaderY={leaderY}
-                centerLabel={formatEuroCompact(sunOn ? sunSpend.due : monthly)}
+                centerLabel={formatEuroCompact(sunSpend.due)}
                 onSelect={(id) => {
                   setDetailId(null);
                   setFocusId(id);
